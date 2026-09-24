@@ -68,9 +68,8 @@ web: node server.cjs
 
 ---
 
-## Core System Architecture & Security Notes
+## Core System Architecture & Fallbacks
 
-- **WebRTC Signaling**: WebSockets dynamically adapt to `ws://` or `wss://` based on `window.location.protocol` for single-host deployments.
-- **WebSocket Origin Validation**: Same-origin browser connections are allowed; cross-origin deployments must explicitly set `ALLOWED_ORIGINS` to the exact public origin(s).
-- **Production Secrets**: JWT/admin/Supabase production secrets are required and must be supplied through the hosting platform's secret/environment-variable system.
-- **Ad Media**: Advertiser files are uploaded directly to Supabase Storage with a 45 MB application limit; the Node host does not create an `uploads/` directory.
+- **Zero-Dependency Core**: If `SUPABASE_URL` or `REDIS_URL` are not supplied, the server seamlessly runs its high-performance in-memory database and caching engines.
+- **WebRTC Signaling**: WebSockets dynamically adapt to `ws://` or `wss://` based on `window.location.protocol`.
+- **CORS & WebSocket Origin Validation**: Automatically trusts common PaaS subdomains (`.onrender.com`, `.fly.dev`, `.koyeb.app`, `.herokuapp.com`, `.railway.app`, `.vercel.app`) as well as any domain defined in `ALLOWED_ORIGINS` or `APP_URL`.

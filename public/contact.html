@@ -108,19 +108,15 @@
   <main id="main">
     <section class="section shell contact-page">
       <div class="contact-aside">
-        <h1 class="contact-title" data-i18n="ct.h1">Contact <em>LELA.</em></h1>
+        <h1 class="contact-title" data-i18n="ct.h1">Let’s <em>talk.</em></h1>
         <p class="standfirst" data-i18n="ct.stand">
-          We are here for questions about LELA, partnerships, safety, and anything you think the team should see.
+          A question about how LELA works, a problem on the site, or something you
+          think the team should see — write it here.
         </p>
 
         <div class="contact-block">
           <h2 data-i18n="ct.emailH">Email</h2>
           <a class="contact-mail" href="mailto:admin@lela.chat">admin@lela.chat</a>
-        </div>
-
-        <div class="contact-block">
-          <h2 data-i18n="ct.phoneH">Phone</h2>
-          <a class="contact-mail" id="contact-phone" href="#">__LELA_CONTACT_PHONE__</a>
         </div>
 
         <div class="contact-block">
@@ -131,14 +127,64 @@
             <li><a href="/privacy" data-i18n="nav.privacy">Privacy</a></li>
           </ul>
         </div>
+
+        <p class="contact-note" data-i18n="ct.note">
+          Something happened inside a session? Use the report button in the
+          chat instead. Those are read first and need no message.
+        </p>
       </div>
 
-      <div class="form-panel" id="form-panel" style="display:flex;align-items:center;min-height:320px;">
-        <div>
-          <h2 style="margin:0 0 10px;font-size:clamp(24px,3vw,34px);">LELA</h2>
-          <p class="form-hint" style="margin:0;max-width:520px;" data-i18n="ct.copy">
-            Random one-on-one video chat, peer-to-peer, with moderation and no sign-up.
-          </p>
+      <div class="form-panel" id="form-panel">
+        <p class="form-hint" data-i18n="ct.copy">
+          Messages go straight to the team. Include the email you would like
+          the reply sent to and as much detail as you can.
+        </p>
+
+        <form id="contact-form" novalidate>
+          <div class="field">
+            <label for="c-name" data-i18n="ct.nameLabel">Your name</label>
+            <input id="c-name" name="name" type="text" autocomplete="name" maxlength="100" />
+          </div>
+
+          <div class="field">
+            <label for="c-email" data-i18n="ct.emailLabel">Your email</label>
+            <input id="c-email" name="email" type="email" autocomplete="email" maxlength="254" required />
+            <span class="field-error" id="c-email-error"></span>
+          </div>
+
+          <div class="field">
+            <label for="c-topic" data-i18n="ct.topicLabel">What is this about?</label>
+            <div class="field-select-wrap">
+              <select id="c-topic" name="topic" required>
+                <option value="general" data-i18n="ct.opt.general">A general question</option>
+                <option value="broken" data-i18n="ct.opt.broken">Something is broken</option>
+                <option value="press" data-i18n="ct.opt.press">Press or partnership</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="c-message" data-i18n="ct.msgLabel">Message</label>
+            <textarea id="c-message" name="message" maxlength="2000" required></textarea>
+            <span class="field-error" id="c-message-error"></span>
+          </div>
+
+          <!-- Honeypot: hidden from people, tempting to bots. -->
+          <div class="field field-hp" aria-hidden="true">
+            <label for="c-website">Leave this empty</label>
+            <input id="c-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div class="form-actions">
+            <button class="btn" type="submit" id="c-submit" data-i18n="ct.send">Send message</button>
+            <p class="form-msg" id="form-msg" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+
+        <div class="form-sent" id="form-sent">
+          <h3 id="sent-heading" tabindex="-1" data-i18n="ct.sentH">Message sent.</h3>
+          <p data-i18n="ct.sentP">Thanks. It is with the team now — a reply comes to the address you used.</p>
+          <button class="btn btn-quiet" type="button" id="c-again" data-i18n="ct.again">Write another</button>
         </div>
       </div>
     </section>
@@ -165,22 +211,5 @@
       <p class="footer-legal" data-i18n="foot.legal">© 2026 LELA. All rights reserved.</p>
     </div>
   </footer>
-  <script src="/contact-config.js"></script>
-  <script>
-    (function () {
-      var el = document.getElementById("contact-phone");
-      if (!el) return;
-      var configured = String(window.LELA_CONTACT_PHONE || "").trim();
-      var existing = String(el.textContent || "").trim();
-      var phone = configured || (existing && existing !== "__LELA_CONTACT_PHONE__" ? existing : "");
-      if (!phone || phone === "YOUR PHONE NUMBER") {
-        el.textContent = "Phone number not configured";
-        el.removeAttribute("href");
-        return;
-      }
-      el.textContent = phone;
-      el.href = "tel:" + phone.replace(/[^0-9+]/g, "");
-    })();
-  </script>
 </body>
 </html>

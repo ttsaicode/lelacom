@@ -1214,35 +1214,6 @@
       object-fit: contain;
     }
 
-    .recording-platform-picker {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      margin: 12px auto 4px;
-      max-width: 620px;
-    }
-    .platform-button {
-      min-height: 40px;
-      padding: 9px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--card-border);
-      background: rgba(255,255,255,0.04);
-      color: var(--text-main);
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .platform-button.active {
-      background: linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%);
-      border-color: transparent;
-      color: #fff;
-    }
-    .platform-button:disabled { opacity: .55; cursor: wait; }
-    @media (max-width: 520px) {
-      .recording-platform-picker { grid-template-columns: 1fr; }
-    }
-
     /* RESPONSIVE */
     @media (max-width: 768px) {
       .top-bar { padding: 0 10px; height: 52px; min-height: 52px; }
@@ -1476,15 +1447,24 @@
   <div id="recordingResultBackdrop" class="modal-backdrop">
     <div class="recording-result-modal">
       <h2>Your encounter is ready 🎬</h2>
-      <p id="recordingResultText">Choose the format you want to save.</p>
-      <div id="recordingPlatformPicker" class="recording-platform-picker" aria-label="Choose recording format">
-        <button class="platform-button" data-platform="tiktok" type="button">TikTok · 9:16</button>
-        <button class="platform-button" data-platform="reels" type="button">Instagram Reels · 9:16</button>
-        <button class="platform-button" data-platform="shorts" type="button">YouTube Shorts · 9:16</button>
-        <button class="platform-button" data-platform="youtube" type="button">YouTube · 16:9</button>
-        <button class="platform-button active" data-platform="original" type="button">Original</button>
-      </div>
+      <p id="recordingResultText">Your recording was captured locally on this device.</p>
       <video id="recordingPreview" class="recording-preview" controls playsinline preload="metadata"></video>
+      
+      <!-- Format Selection -->
+      <div id="recordingFormatSelector" style="margin: 16px 0; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px;">
+        <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 10px;">Export Format</label>
+        <select id="recordingFormatSelect" style="width: 100%; height: 40px; background: rgba(10,14,28,0.85); border: 1px solid var(--card-border); border-radius: 8px; color: #fff; padding: 0 14px; font-size: 13.5px; outline: none;">
+          <option value="auto">🎬 Auto (Best Quality)</option>
+          <option value="youtube">📺 YouTube (MP4, 16:9, H.264/AAC)</option>
+          <option value="tiktok">🎵 TikTok (MP4, 9:16, H.264/AAC)</option>
+          <option value="instagram">📸 Instagram Reels (MP4, 9:16, H.264/AAC)</option>
+          <option value="instagram-square">📸 Instagram Feed (MP4, 1:1, H.264/AAC)</option>
+          <option value="webm">🌐 WebM (VP9/Opus, High Quality)</option>
+          <option value="mp4">📱 MP4 (H.264/AAC, Universal)</option>
+        </select>
+        <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Select your target platform for optimal compatibility</p>
+      </div>
+      
       <div class="modal-actions">
         <button id="downloadRecordingButton" class="modal-button submit" type="button">⬇ Save to device</button>
         <button id="deleteRecordingButton" class="modal-button" type="button">🗑 Delete recording</button>

@@ -2118,53 +2118,47 @@
 
     async function handleAdSubmit(e) {
       e.preventDefault();
+
       const fileInput = $("adFile");
       const file = fileInput.files[0];
       const mediaUrl = $("adMediaUrl").value.trim();
-      if (!file && !mediaUrl) { alert("Please select a media file or specify a media URL."); return; }
-      if (file && file.size > 45 * 1024 * 1024) { alert("Ad files must be 45 MB or smaller."); return; }
+
+      if (!file && !mediaUrl) {
+        alert("Please select a media file or specify a media URL.");
+        return;
+      }
+
       const btn = $("adSubmitBtn");
       btn.disabled = true;
-      btn.textContent = file ? "Uploading to Supabase..." : "Publishing...";
+      btn.textContent = "Publishing...";
+
       try {
-        let finalMediaUrl = mediaUrl;
-        let mediaType = "image";
-        if (file) {
-          const metaRes = await fetch("/api/admin/ads/upload-url", {
-            method: "POST",
-            headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-            body: JSON.stringify({ originalName: file.name, mimeType: file.type, size: file.size })
-          });
-          if (metaRes.status === 401) return sessionExpired();
-          const meta = await metaRes.json().catch(() => ({}));
-          if (!metaRes.ok || !meta.signedUrl) throw new Error(meta.error || "Could not prepare Supabase upload.");
-          const uploadBody = new FormData();
-          uploadBody.append("cacheControl", "31536000");
-          uploadBody.append("", file);
-          const uploadRes = await fetch(meta.signedUrl, { method: "PUT", body: uploadBody });
-          if (!uploadRes.ok) throw new Error(`Supabase upload failed (${uploadRes.status}).`);
-          finalMediaUrl = meta.publicUrl;
-          mediaType = file.type.startsWith("video/") ? "video" : "image";
-          if (!finalMediaUrl) throw new Error("Supabase media URL was not returned.");
-        } else {
-          mediaType = /\.(mp4|webm|ogg)(\?|$)/i.test(mediaUrl) ? "video" : "image";
-        }
-        const payload = {
-          title: $("adTitle").value.trim(),
-          body: $("adBody") ? $("adBody").value.trim() : "",
-          link_url: $("adLink").value.trim(),
-          placement: $("adPlacement").value,
-          device_target: $("adDeviceTarget") ? $("adDeviceTarget").value : "all",
-          priority: parseInt($("adPriority").value || "1", 10) || 1,
-          rotation_seconds: parseInt($("adRotation").value || "12", 10) || 12,
-          cta_text: $("adCta") ? $("adCta").value.trim() : "Learn more ↗",
-          active: $("adActive").checked,
-          media_url: finalMediaUrl,
-          media_type: mediaType
-        };
-        const res = await fetch("/api/admin/ads", { method: "POST", headers: { ...getAuthHeaders(), "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        const fd = new FormData();
+        fd.append("title", $("adTitle").value.trim());
+        if ($("adBody")) fd.append("body", $("adBody").value.trim());
+        fd.append("link_url", $("adLink").value.trim());
+        fd.append("placement", $("adPlacement").value);
+        if ($("adDeviceTarget")) fd.append("device_target", $("adDeviceTarget").value);
+        fd.append("priority", $("adPriority").value);
+        fd.append("rotation_seconds", $("adRotation").value || "12");
+        if ($("adCta")) fd.append("cta_text", $("adCta").value.trim());
+        fd.append("active", $("adActive").checked ? "true" : "false");
+
+        if (file) fd.append("media", file);
+        else fd.append("media_url", mediaUrl);
+
+        const res = await fetch("/api/admin/ads", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${adminJwt}` },
+          body: fd
+        });
+
         if (res.status === 401) return sessionExpired();
-        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Publish failed"); }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Upload failed");
+        }
+
         $("adForm").reset();
         $("adFilePreview").innerHTML = "";
         showAdminToast("🎉 Campaign published successfully!");

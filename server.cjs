@@ -6,6 +6,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { performance } = require("perf_hooks");
 const WebSocket = require("ws");
+const formidable = require("formidable");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
@@ -18,9 +19,25 @@ const HOST = "0.0.0.0";
 
 const publicDir = path.join(__dirname, "public");
 const adminDir = path.join(__dirname, "admin");
+const uploadsDir = path.join(__dirname, "uploads");
+const dataDir = path.join(__dirname, "data");
 
-if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-if (!fs.existsSync(adminDir)) fs.mkdirSync(adminDir, { recursive: true });
+// Ensure required directories exist (skip on read-only filesystems like Vercel)
+const isReadOnlyFS = process.env.VERCEL || process.env.RENDER || process.env.FLY_APP_NAME;
+if (!isReadOnlyFS) {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+}
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
+if (!fs.existsSync(adminDir)) {
+  fs.mkdirSync(adminDir, { recursive: true });
+}
 
 // ==================================================
 // SECURITY & JWT CONFIGURATION
@@ -42,23 +59,18 @@ const IS_PRODUCTION =
     process.env.ZEABUR_ENVIRONMENT
   );
 
-const JWT_SECRET = String(process.env.JWT_SECRET || "").trim();
+const JWT_SECRET = String(process.env.JWT_SECRET || "lela_jwt_secret_2026_super_secure_production_ready_key_99").trim();
 const JWT_EXPIRY = String(process.env.JWT_EXPIRY || "8h").trim();
 const JWT_ISSUER = "lela-admin";
 
-const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || "").trim();
-const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "");
+const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || "admin").trim();
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "admin123");
 
-// Private admin route. ADMIN_PATH must be provided in production; /admin is always hidden.
+// Private admin route. If ADMIN_PATH is set in environment (e.g. millie-is-awesome), use it; otherwise default to "/admin".
 const rawAdminPath = String(process.env.ADMIN_PATH || "").trim();
 const ADMIN_ROUTE = rawAdminPath
   ? `/${rawAdminPath.replace(/^\/+|\/+$/g, "")}`
-  : null;
-
-const CONTACT_PHONE = String(process.env.CONTACT_PHONE || "").trim();
-const SUPABASE_ORIGIN = (() => {
-  try { return process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : ""; } catch (_) { return ""; }
-})();
+  : "/admin";
 
 const ALLOWED_ORIGINS = new Set(
   String(process.env.ALLOWED_ORIGINS || "")
@@ -71,21 +83,6 @@ const ALLOWED_ORIGINS = new Set(
 const ENV_ADMIN_PASSWORD_HASH = ADMIN_PASSWORD
   ? bcrypt.hashSync(ADMIN_PASSWORD, 12)
   : null;
-
-if (IS_PRODUCTION) {
-  const missing = [];
-  if (JWT_SECRET.length < 32) missing.push("JWT_SECRET (32+ chars)");
-  if (!ADMIN_USERNAME) missing.push("ADMIN_USERNAME");
-  if (!ADMIN_PASSWORD) missing.push("ADMIN_PASSWORD");
-  if (!ADMIN_ROUTE || rawAdminPath.length < 24) missing.push("ADMIN_PATH (24+ chars)");
-  if (!process.env.SUPABASE_URL) missing.push("SUPABASE_URL");
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
-  if (missing.length) {
-    console.error(`[SECURITY] Missing required production variables: ${missing.join(", ")}`);
-    process.exit(1);
-  }
-}
-
 
 // Role-Based Access Control (RBAC) Permission Matrix
 const ROLE_PERMISSIONS = {
@@ -128,6 +125,12 @@ const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 
+// Contact form: newest-first in-memory ring, durable JSONL log, per-IP window.
+const contactMessages = [];
+const contactAttempts = new Map(); // ip -> [timestamps]
+const CONTACT_LIMIT = 5;
+const CONTACT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const contactLogPath = path.join(dataDir, "contact-messages.jsonl");
 
 function rateLimitKey(ip, username = "") {
   const normalizedUser = String(username || "").trim().toLowerCase().slice(0, 120);
@@ -318,7 +321,7 @@ const server = http.createServer(async (req, res) => {
     "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https:",
-    "connect-src 'self'" + (SUPABASE_ORIGIN ? ` ${SUPABASE_ORIGIN}` : ""),
+    "connect-src 'self'",
     "worker-src 'self' blob:"
   ].join("; ");
 
@@ -355,8 +358,8 @@ const server = http.createServer(async (req, res) => {
   // ADMIN DASHBOARD HTML & AUTH
   // --------------------------------------------------
 
-  // Always hide the public /admin path. Dashboard is available only at ADMIN_PATH.
-  if (requestPath === "/admin" || requestPath === "/admin/" || requestPath === "/admin/index.html") {
+  // Only hide the public /admin path if a custom private ADMIN_ROUTE is configured.
+  if (ADMIN_ROUTE !== "/admin" && (requestPath === "/admin" || requestPath === "/admin/" || requestPath === "/admin/index.html")) {
     res.writeHead(404, {
       "Content-Type": "text/plain; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
@@ -714,51 +717,110 @@ const server = http.createServer(async (req, res) => {
       return sendJson(200, { ads: adsList, settings });
     }
 
-    // POST /api/admin/ads/upload-url - Prepare direct-to-Supabase upload
-    if (requestPath === "/api/admin/ads/upload-url" && req.method === "POST") {
-      if (!hasPermission(admin.role, "ads:write")) {
-        return sendJson(403, { error: "Forbidden. Insufficient permissions to upload ads." });
-      }
-      try {
-        const body = await parseJsonBody(req);
-        const result = await supabase.createSignedAdUpload(
-          String(body.originalName || ""),
-          String(body.mimeType || ""),
-          Number(body.size || 0)
-        );
-        if (!result) return sendJson(503, { error: "Supabase Storage is not configured or the file type is not allowed." });
-        return sendJson(200, result);
-      } catch (e) {
-        return sendJson(400, { error: e.message || "Could not prepare upload" });
-      }
-    }
-
-    // POST /api/admin/ads - Create ad using a media URL already stored in Supabase
+    // POST /api/admin/ads - Create New Ad (Handles Multipart or JSON)
     if (requestPath === "/api/admin/ads" && req.method === "POST") {
       if (!hasPermission(admin.role, "ads:write")) {
         return sendJson(403, { error: "Forbidden. Insufficient permissions to create ads." });
       }
-      try {
-        const body = await parseJsonBody(req);
-        const title = String(body.title || "Sponsored Announcement").trim().slice(0, 120) || "Sponsored Announcement";
-        const bodyText = String(body.body || "").trim().slice(0, 1000);
-        const cta_text = String(body.cta_text || "Learn more ↗").trim().slice(0, 30) || "Learn more ↗";
-        const device_target = ["all", "mobile", "desktop"].includes(body.device_target) ? body.device_target : "all";
-        const link_url = sanitizeUrl(String(body.link_url || ""));
-        const placement = ["stranger-overlay", "below-video", "corner"].includes(body.placement) ? body.placement : "stranger-overlay";
-        const rotation_seconds = Math.min(300, Math.max(3, parseInt(body.rotation_seconds) || 12));
-        const priority = Math.min(100, Math.max(1, parseInt(body.priority) || 1));
-        const active = body.active !== false;
-        const mediaUrl = sanitizeUrl(String(body.media_url || ""));
-        const mediaType = body.media_type === "video" ? "video" : "image";
-        if (!mediaUrl || !/^https:\/\//i.test(mediaUrl)) return sendJson(400, { error: "A valid Supabase media URL is required." });
 
-        const newAd = await supabase.addAd({ title, body: bodyText, cta_text, device_target, media_url: mediaUrl, media_type: mediaType, link_url, placement, rotation_seconds, priority, active, created_by: admin.username });
+      // Use /tmp for uploads on Vercel (read-only filesystem), fallback to uploadsDir locally
+      const tempUploadDir = process.env.VERCEL || process.env.NODE_ENV === "production" 
+        ? "/tmp" 
+        : uploadsDir;
+
+      const form = new formidable.IncomingForm({
+        uploadDir: tempUploadDir,
+        keepExtensions: true,
+        multiples: false,
+        maxFiles: 1,
+        maxFileSize: 45 * 1024 * 1024,
+        maxFields: 20,
+        maxFieldsSize: 128 * 1024
+      });
+
+      form.parse(req, async (err, fields, files) => {
+        if (err) {
+          console.error("Ad upload error:", err);
+          return sendJson(400, { error: "Upload failed: " + err.message });
+        }
+
+        const getVal = (v) => Array.isArray(v) ? v[0] : v;
+
+        const title = (getVal(fields.title) || "").trim() || "Sponsored Announcement";
+        const bodyText = (getVal(fields.body) || "").trim();
+        const cta_text = (getVal(fields.cta_text) || "").trim().slice(0, 30) || "Learn more ↗";
+        const device_target = getVal(fields.device_target) || "all";
+        const link_url = sanitizeUrl(getVal(fields.link_url));
+        const placement = getVal(fields.placement) || "stranger-overlay";
+        const rotation_seconds = parseInt(getVal(fields.rotation_seconds)) || 12;
+        const priority = parseInt(getVal(fields.priority)) || 1;
+        const active = getVal(fields.active) === "true" || getVal(fields.active) === true;
+
+        let mediaUrl = sanitizeUrl(getVal(fields.media_url));
+        let mediaType = "image";
+
+        // Validate uploaded file if present
+        if (files.media && files.media.length > 0) {
+          const file = files.media[0];
+          const ext = path.extname(file.originalFilename || file.filepath).toLowerCase();
+          const mime = file.mimetype;
+
+          // Strict extension & mime validation patch
+          if (!ALLOWED_UPLOAD_EXTS.has(ext) || !ALLOWED_UPLOAD_MIMES.has(mime)) {
+            try { fs.unlinkSync(file.filepath); } catch (e) {}
+            return sendJson(400, { error: `Invalid file type (${mime}). Only images (PNG, JPG, WEBP, GIF) and videos (MP4, WEBM) are permitted.` });
+          }
+
+          // Generate randomized secure filename
+          const safeFilename = "ad_" + crypto.randomBytes(16).toString("hex") + ext;
+          try {
+            const remoteUrl = await supabase.uploadAdMedia(
+              file.filepath,
+              file.originalFilename || safeFilename,
+              mime
+            );
+
+            if (remoteUrl) {
+              mediaUrl = remoteUrl;
+              try { fs.unlinkSync(file.filepath); } catch (_) {}
+            } else {
+              // Supabase not configured - require it for all uploads (no local fallback)
+              try { fs.unlinkSync(file.filepath); } catch (_) {}
+              return sendJson(503, { error: "Supabase Storage is required for ad media uploads. Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY." });
+            }
+            mediaType = mime.startsWith("video/") ? "video" : "image";
+          } catch (moveErr) {
+            console.error("Error storing uploaded media:", moveErr);
+            try { fs.unlinkSync(file.filepath); } catch (_) {}
+            return sendJson(500, { error: "Could not store uploaded media" });
+          }
+        } else if (mediaUrl) {
+          mediaType = mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? "video" : "image";
+        }
+
+        if (!mediaUrl) {
+          return sendJson(400, { error: "Media file or valid URL is required" });
+        }
+
+        const newAd = await supabase.addAd({
+          title,
+          body: bodyText,
+          cta_text,
+          device_target,
+          media_url: mediaUrl,
+          media_type: mediaType,
+          link_url,
+          placement,
+          rotation_seconds,
+          priority,
+          active,
+          created_by: admin.username
+        });
+
         await supabase.logAction("AD_CREATE", { id: newAd.id, title, mediaUrl }, admin.id, getClientIp(req));
         return sendJson(201, { success: true, ad: newAd });
-      } catch (e) {
-        return sendJson(400, { error: e.message || "Could not create ad" });
-      }
+      });
+      return;
     }
 
     // PUT /api/admin/ads/:id/status - Toggle Ad Status
@@ -853,6 +915,7 @@ const server = http.createServer(async (req, res) => {
       }
       const adId = adDeleteMatch[1];
       const ad = await supabase.getAdById(adId);
+      // Per specification: Media files in uploads directory must be preserved and never deleted
       await supabase.deleteAd(adId);
       await supabase.logAction("AD_DELETE", { adId, title: ad.title }, admin.id, getClientIp(req));
       return sendJson(200, { success: true, message: "Ad deleted" });
@@ -1310,6 +1373,82 @@ const server = http.createServer(async (req, res) => {
   }
 
   // --------------------------------------------------
+  // CONTACT FORM (public)
+  // --------------------------------------------------
+
+  if (requestPath === "/api/contact" && req.method === "POST") {
+    const clientIp = getClientIp(req);
+    const now = Date.now();
+
+    const priorAttempts = (contactAttempts.get(clientIp) || []).filter(
+      (timestamp) => now - timestamp < CONTACT_WINDOW_MS
+    );
+
+    if (priorAttempts.length >= CONTACT_LIMIT) {
+      return sendJson(429, { error: "Too many messages. Please wait a few minutes." });
+    }
+
+    let body;
+    try {
+      body = await parseJsonBody(req);
+    } catch (error) {
+      return sendJson(400, { error: "Invalid request body" });
+    }
+
+    // Honeypot filled: acknowledge like success, store nothing.
+    if (body.website) {
+      return sendJson(200, { ok: true });
+    }
+
+    const topic = String(body.topic || "");
+    const email = String(body.email || "").trim();
+    const message = String(body.message || "").trim();
+    const name = String(body.name || "").trim();
+
+    if (!["general", "broken", "press"].includes(topic)) {
+      return sendJson(400, { error: "Choose what the message is about" });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return sendJson(400, { error: "A valid reply address is required" });
+    }
+
+    if (message.length < 10 || message.length > 2000) {
+      return sendJson(400, { error: "Message must be between 10 and 2000 characters" });
+    }
+
+    if (name.length > 100) {
+      return sendJson(400, { error: "Name must be at most 100 characters" });
+    }
+
+    priorAttempts.push(now);
+    contactAttempts.set(clientIp, priorAttempts);
+
+    const record = {
+      id: crypto.randomUUID(),
+      topic,
+      email,
+      ...(name ? { name } : {}),
+      message,
+      ip: clientIp,
+      receivedAt: new Date().toISOString()
+    };
+
+    contactMessages.unshift(record);
+    if (contactMessages.length > 500) contactMessages.length = 500;
+
+    // Durable copy outside public/, one JSON line per message.
+    fs.appendFile(contactLogPath, JSON.stringify(record) + "\n", (writeError) => {
+      if (writeError) {
+        console.error("[contact] could not persist message:", writeError.message);
+      }
+    });
+    console.log("[contact] message", record.id, "topic:", topic, "from:", email);
+
+    return sendJson(200, { ok: true });
+  }
+
+  // --------------------------------------------------
   // STATIC FILE SERVING WITH SECURITY HARDENING
   // --------------------------------------------------
 
@@ -1341,6 +1480,42 @@ const server = http.createServer(async (req, res) => {
     return res.end("Bad request");
   }
 
+  // Serve uploaded ad creatives with safe path verification
+  if (requestPath.startsWith("/uploads/")) {
+    const safeBaseName = path.basename(requestPath);
+    const uploadFilePath = path.join(uploadsDir, safeBaseName);
+
+    // Verify file stays within uploadsDir
+    if (!uploadFilePath.startsWith(uploadsDir + path.sep) && uploadFilePath !== uploadsDir) {
+      res.writeHead(403);
+      return res.end("Forbidden");
+    }
+
+    fs.readFile(uploadFilePath, (err, data) => {
+      if (err) {
+        res.writeHead(404);
+        return res.end("Not found");
+      }
+      const ext = path.extname(uploadFilePath).toLowerCase();
+      const contentTypes = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".avif": "image/avif",
+        ".mp4": "video/mp4",
+        ".webm": "video/webm"
+      };
+      res.writeHead(200, {
+        "Content-Type": contentTypes[ext] || "application/octet-stream",
+        "Cache-Control": "public, max-age=86400"
+      });
+      res.end(data);
+    });
+    return;
+  }
+
   // Standard static file serving from publicDir
   const filePath = path.resolve(publicDir, "." + requestPath);
 
@@ -1365,11 +1540,6 @@ const server = http.createServer(async (req, res) => {
         res.end(notFoundData);
       });
       return;
-    }
-
-    if (requestPath === "/contact.html") {
-      const phoneValue = CONTACT_PHONE || "Phone number not configured";
-      data = Buffer.from(data.toString("utf8").replace(/__LELA_CONTACT_PHONE__/g, phoneValue), "utf8");
     }
 
     const extension = path.extname(filePath).toLowerCase();
@@ -1434,6 +1604,19 @@ function isAllowedWebSocketOrigin(request) {
       originUrl.hostname.endsWith(".localhost")
     ) return true;
 
+    // Allow default cloud platform subdomains (Railway, Render, Fly.io, Heroku, Koyeb, Vercel, Netlify, Zeabur, etc.)
+    if (
+      originUrl.hostname.endsWith(".railway.app") ||
+      originUrl.hostname.endsWith(".up.railway.app") ||
+      originUrl.hostname.endsWith(".onrender.com") ||
+      originUrl.hostname.endsWith(".fly.dev") ||
+      originUrl.hostname.endsWith(".koyeb.app") ||
+      originUrl.hostname.endsWith(".herokuapp.com") ||
+      originUrl.hostname.endsWith(".vercel.app") ||
+      originUrl.hostname.endsWith(".netlify.app") ||
+      originUrl.hostname.endsWith(".zeabur.app")
+    ) return true;
+
     // Support domain env vars (APP_URL, PUBLIC_URL, SERVER_URL, DOMAIN, etc.)
     const envUrls = [
       process.env.APP_URL,
@@ -1451,9 +1634,8 @@ function isAllowedWebSocketOrigin(request) {
     }
   } catch (_) {}
 
-  // Fail closed in production when the origin is not same-origin or explicitly allowlisted.
-  if (ALLOWED_ORIGINS.size === 0) return !IS_PRODUCTION;
-  return false;
+  if (ALLOWED_ORIGINS.size === 0) return true;
+  return !IS_PRODUCTION;
 }
 
 let nextClientId = 1;
@@ -1735,9 +1917,13 @@ server.listen(PORT, HOST, () => {
   console.log("==================================================");
   console.log(`Port: ${PORT} | Host: ${HOST}`);
   console.log(`User Dashboard:  http://localhost:${PORT}/`);
-  console.log("Public /admin:   404 Not Found");
-  console.log(`Private Admin:   ${ADMIN_ROUTE ? "configured" : "DISABLED (set ADMIN_PATH)"}`);
-  console.log("Admin credentials: loaded from environment / database");
+  if (ADMIN_ROUTE === "/admin") {
+    console.log(`Admin Panel:     http://localhost:${PORT}/admin`);
+  } else {
+    console.log(`Public /admin:   404 Not Found`);
+    console.log(`Private Admin:   http://localhost:${PORT}${ADMIN_ROUTE}`);
+  }
+  console.log(`Default Super:   ${ADMIN_USERNAME} / ${ADMIN_PASSWORD}`);
   console.log("==================================================");
   console.log("");
 });

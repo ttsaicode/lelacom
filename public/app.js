@@ -38,7 +38,7 @@ const recordingResultText     = document.getElementById("recordingResultText");
 const recordingPreview        = document.getElementById("recordingPreview");
 const downloadRecordingButton = document.getElementById("downloadRecordingButton");
 const deleteRecordingButton   = document.getElementById("deleteRecordingButton");
-const recordingPlatformPicker = document.getElementById("recordingPlatformPicker");
+const recordingFormatSelect   = document.getElementById("recordingFormatSelect");
 
 const broadcastBanner  = document.getElementById("broadcastBanner");
 const broadcastMessage = document.getElementById("broadcastMessage");
@@ -118,16 +118,12 @@ let recordingAudioSources     = [];
 
 let completedRecordingBlob    = null;
 let completedRecordingUrl     = null;
-let masterRecordingBlob       = null;
-let selectedRecordingPlatform = "original";
 
 // Dynamic Ads State
 let activeAdsList = [];
 let currentAdIndex = 0;
 let adRotationTimer = null;
 let adDismissed = false;
-let showAdAfterNextMatch = false;
-let adWasShownForCurrentMatch = false;
 
 /* ============================================================
    DEBUG & STATUS HELPERS
@@ -242,11 +238,13 @@ async function initAdsEngine() {
     }
     activeAdsList = Array.isArray(data.ads) ? data.ads : [];
 
-    // Ads are intentionally hidden on first load. They appear only after the
-    // user presses Next and successfully connects to a different person.
-    hideAllAds();
-    adDismissed = false;
-    adWasShownForCurrentMatch = false;
+    if (activeAdsList.length > 0 && !adDismissed) {
+      currentAdIndex = 0;
+      renderCurrentAd();
+      scheduleNextAd();
+    } else {
+      hideAllAds();
+    }
   } catch (err) {
     console.warn("[ADS] Failed to load sponsored ads:", err);
   }
@@ -365,12 +363,63 @@ function renderCurrentAd() {
         }
       };
 
-      // Ads are always silent for viewers. No unmute or pop-out controls are exposed.
+      // PiP Overlay controls
       const controls = document.createElement("div");
       controls.className = "pip-overlay-controls";
-      controls.style.display = "none";
-      vid.muted = true;
-      vid.volume = 0;
+
+      // Left controls: Play/Pause and Mute toggle
+      const leftControls = document.createElement("div");
+      leftControls.style.display = "flex";
+      leftControls.style.gap = "4px";
+
+      const playBtn = document.createElement("button");
+      playBtn.type = "button";
+      playBtn.className = "pip-ctrl-btn";
+      playBtn.title = "Play / Pause";
+      playBtn.innerHTML = "⏸";
+      playBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (vid.paused) {
+          vid.play().then(() => { playBtn.innerHTML = "⏸"; }).catch(() => {});
+        } else {
+          vid.pause();
+          playBtn.innerHTML = "▶";
+        }
+      };
+
+      const muteBtn = document.createElement("button");
+      muteBtn.type = "button";
+      muteBtn.className = "pip-ctrl-btn";
+      muteBtn.title = "Mute / Unmute Sound";
+      muteBtn.innerHTML = "🔇";
+      muteBtn.onclick = (e) => {
+        e.stopPropagation();
+        vid.muted = !vid.muted;
+        muteBtn.innerHTML = vid.muted ? "🔇" : "🔊";
+      };
+
+      leftControls.appendChild(playBtn);
+      leftControls.appendChild(muteBtn);
+
+      // Right control: Browser Picture-in-Picture pop-out
+      const popoutBtn = document.createElement("button");
+      popoutBtn.type = "button";
+      popoutBtn.className = "pip-ctrl-btn";
+      popoutBtn.title = "Pop-out Video (Picture-in-Picture window)";
+      popoutBtn.innerHTML = "⧉ Pop-out";
+      popoutBtn.onclick = async (e) => {
+        e.stopPropagation();
+        try {
+          if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+          } else if (vid.requestPictureInPicture) {
+            await vid.requestPictureInPicture();
+          }
+        } catch (_) {}
+      };
+
+      controls.appendChild(leftControls);
+      controls.appendChild(popoutBtn);
 
       vid.onended = () => {
         if (activeAdsList.length > 1 && !adDismissed) {
@@ -420,19 +469,18 @@ function scheduleNextAd() {
 
 if (adCloseBtn) {
   adCloseBtn.addEventListener("click", () => {
-    // Dismiss for the current stranger only. It will not return until Next
-    // successfully connects to a different person.
     adDismissed = true;
-    adWasShownForCurrentMatch = true;
     hideAllAds();
     if (adRotationTimer) clearTimeout(adRotationTimer);
-    adRotationTimer = null;
+
+    // Ads will remain hidden until user clicks "Next" button
+    // Do not auto-redisplay on rotation cycle
   });
 }
 
 // Relocate ad seamlessly on viewport resize or orientation shift
 window.addEventListener("resize", () => {
-  if (activeAdsList.length > 0 && !adDismissed && adWasShownForCurrentMatch) {
+  if (activeAdsList.length > 0 && !adDismissed) {
     renderCurrentAd();
   }
 });
@@ -491,6 +539,11 @@ function updateRecordButton() {
 }
 
 function chooseRecordingFormat() {
+  const format = getRecordingFormat();
+  if (format.mimeType) {
+    return { mimeType: format.mimeType, extension: format.extension };
+  }
+  
   const candidates = [
     { mimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", extension: "mp4" },
     { mimeType: "video/mp4", extension: "mp4" },
@@ -660,24 +713,17 @@ function finishLocalRecording() {
     return;
   }
 
-  masterRecordingBlob = blob;
-  selectedRecordingPlatform = "original";
   completedRecordingBlob = blob;
   if (completedRecordingUrl) URL.revokeObjectURL(completedRecordingUrl);
   completedRecordingUrl = URL.createObjectURL(blob);
 
-  if (recordingPlatformPicker) {
-    recordingPlatformPicker.querySelectorAll(".platform-button").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.platform === "original");
-    });
-  }
   if (recordingPreview) {
     recordingPreview.src = completedRecordingUrl;
     recordingPreview.load();
   }
-  if (recordingResultText) recordingResultText.textContent = "Choose TikTok, Instagram Reels, YouTube Shorts, YouTube, or Original.";
+
   if (recordingResultBackdrop) recordingResultBackdrop.classList.add("show");
-  setStatus("Encounter ready. Choose a platform or keep the original.");
+  setStatus("Encounter ready. Preview or save it to your device.");
 }
 
 /* ============================================================
@@ -858,18 +904,6 @@ async function handleSignalingMessage(message) {
       updateMatchButtons();
       updateRecordButton();
       setStatus("Matched! Connecting video...");
-
-      if (showAdAfterNextMatch && activeAdsList.length > 0) {
-        showAdAfterNextMatch = false;
-        adDismissed = false;
-        adWasShownForCurrentMatch = true;
-        currentAdIndex = currentAdIndex % activeAdsList.length;
-        renderCurrentAd();
-        scheduleNextAd();
-      } else {
-        hideAllAds();
-        adWasShownForCurrentMatch = false;
-      }
       break;
 
     case "create-offer":
@@ -1189,10 +1223,6 @@ function removeMaintenanceLockout() {
 
 function handlePeerDisconnected() {
   isMatched = false;
-  hideAllAds();
-  adWasShownForCurrentMatch = false;
-  if (adRotationTimer) clearTimeout(adRotationTimer);
-  adRotationTimer = null;
   closeChatChannel();
   clearChat();
 
@@ -1215,12 +1245,6 @@ function handlePeerDisconnected() {
 }
 
 function handleBanned(reason) {
-  showAdAfterNextMatch = false;
-  adDismissed = true;
-  adWasShownForCurrentMatch = false;
-  hideAllAds();
-  if (adRotationTimer) clearTimeout(adRotationTimer);
-  adRotationTimer = null;
   remoteVideo.srcObject = null;
   isMatched = false;
   closeChatChannel();
@@ -1247,13 +1271,6 @@ function handleBanned(reason) {
 
 function stopVideoChat() {
   if (mediaRecorder) stopLocalRecording();
-
-  showAdAfterNextMatch = false;
-  adDismissed = false;
-  adWasShownForCurrentMatch = false;
-  hideAllAds();
-  if (adRotationTimer) clearTimeout(adRotationTimer);
-  adRotationTimer = null;
 
   sendMessage({ type: "stop" });
   isMatched = false;
@@ -1283,11 +1300,15 @@ function stopVideoChat() {
 
 function nextStranger() {
   if (!hasStartedCamera) return;
-  showAdAfterNextMatch = true;
+  
+  // Reset ad dismissal state so ads can show again after Next is clicked
   adDismissed = false;
-  adWasShownForCurrentMatch = false;
-  if (adRotationTimer) clearTimeout(adRotationTimer);
-  hideAllAds();
+  if (activeAdsList.length > 0) {
+    currentAdIndex = 0;
+    renderCurrentAd();
+    scheduleNextAd();
+  }
+  
   sendMessage({ type: "skip" });
   handlePeerDisconnected();
 }
@@ -1377,216 +1398,48 @@ function submitReport() {
 }
 
 /* ============================================================
-   RECORDING EXPORT / PLATFORM CONVERSION
+   RECORDING DOWNLOAD
    ============================================================ */
 
-function getRecordingExtension(blob) {
-  const type = String(blob?.type || "").toLowerCase();
-  return type.includes("mp4") ? "mp4" : "webm";
+// Format configurations for different platforms
+const recordingFormats = {
+  auto: { mimeType: null, extension: "webm", label: "Auto (Best Quality)" },
+  youtube: { mimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", extension: "mp4", label: "YouTube (MP4, 16:9)" },
+  tiktok: { mimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", extension: "mp4", label: "TikTok (MP4, 9:16)" },
+  instagram: { mimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", extension: "mp4", label: "Instagram Reels (MP4, 9:16)" },
+  "instagram-square": { mimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", extension: "mp4", label: "Instagram Feed (MP4, 1:1)" },
+  webm: { mimeType: "video/webm;codecs=vp9,opus", extension: "webm", label: "WebM (VP9/Opus)" },
+  mp4: { mimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", extension: "mp4", label: "MP4 (H.264/AAC)" }
+};
+
+let selectedRecordingFormat = "auto";
+
+function getRecordingFormat() {
+  const format = recordingFormats[selectedRecordingFormat] || recordingFormats.auto;
+  // Check if the mimeType is supported, fallback to auto
+  if (format.mimeType && !MediaRecorder.isTypeSupported(format.mimeType)) {
+    return recordingFormats.auto;
+  }
+  return format;
 }
 
-function waitForVideoMetadata(video, url) {
-  return new Promise((resolve, reject) => {
-    const cleanup = () => {
-      video.removeEventListener("loadedmetadata", onMeta);
-      video.removeEventListener("error", onError);
-    };
-    const onMeta = () => { cleanup(); resolve(); };
-    const onError = () => { cleanup(); reject(new Error("Could not read the recording for export.")); };
-    video.addEventListener("loadedmetadata", onMeta, { once: true });
-    video.addEventListener("error", onError, { once: true });
-    video.src = url;
-    video.load();
+if (recordingFormatSelect) {
+  recordingFormatSelect.addEventListener("change", (e) => {
+    selectedRecordingFormat = e.target.value;
   });
-}
-
-function chooseExportFormat() {
-  const candidates = [
-    { mimeType: "video/mp4;codecs=avc1.42E01E,mp4a.40.2", extension: "mp4" },
-    { mimeType: "video/mp4", extension: "mp4" },
-    { mimeType: "video/webm;codecs=vp9,opus", extension: "webm" },
-    { mimeType: "video/webm;codecs=vp8,opus", extension: "webm" },
-    { mimeType: "video/webm", extension: "webm" }
-  ];
-  return candidates.find((item) => MediaRecorder.isTypeSupported(item.mimeType)) || candidates[candidates.length - 1];
-}
-
-function drawSourceRegion(ctx, video, sx, sy, sw, sh, dx, dy, dw, dh) {
-  if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
-    ctx.fillStyle = "#080a12";
-    ctx.fillRect(dx, dy, dw, dh);
-    return;
-  }
-  const sourceRatio = sw / sh;
-  const targetRatio = dw / dh;
-  let cropW = sw, cropH = sh, cropX = sx, cropY = sy;
-  if (sourceRatio > targetRatio) {
-    cropW = Math.round(sh * targetRatio);
-    cropX = sx + Math.round((sw - cropW) / 2);
-  } else if (sourceRatio < targetRatio) {
-    cropH = Math.round(sw / targetRatio);
-    cropY = sy + Math.round((sh - cropH) / 2);
-  }
-  ctx.drawImage(video, cropX, cropY, cropW, cropH, dx, dy, dw, dh);
-}
-
-async function exportRecordingForPlatform(platform) {
-  if (!masterRecordingBlob) throw new Error("No master recording is available.");
-  if (platform === "original" || platform === "youtube") {
-    if (platform === "original") return masterRecordingBlob;
-  }
-
-  const sourceUrl = URL.createObjectURL(masterRecordingBlob);
-  const sourceVideo = document.createElement("video");
-  sourceVideo.muted = true;
-  sourceVideo.playsInline = true;
-  sourceVideo.preload = "auto";
-
-  try {
-    await waitForVideoMetadata(sourceVideo, sourceUrl);
-
-    const isVertical = platform === "tiktok" || platform === "reels" || platform === "shorts";
-    const width = isVertical ? 720 : 1280;
-    const height = isVertical ? 1280 : 720;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Could not create export canvas.");
-
-    const outputStream = canvas.captureStream(30);
-    let audioContext = null;
-    let audioDestination = null;
-    const capture = sourceVideo.captureStream ? sourceVideo.captureStream() : (sourceVideo.mozCaptureStream ? sourceVideo.mozCaptureStream() : null);
-    if (capture?.getAudioTracks?.().length) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) {
-        try {
-          audioContext = new AudioContextClass();
-          audioDestination = audioContext.createMediaStreamDestination();
-          const audioSource = audioContext.createMediaStreamSource(capture);
-          audioSource.connect(audioDestination);
-          if (audioContext.state === "suspended") await audioContext.resume();
-          const audioTrack = audioDestination.stream.getAudioTracks()[0];
-          if (audioTrack) outputStream.addTrack(audioTrack);
-        } catch (_) {}
-      }
-    }
-
-    const format = chooseExportFormat();
-    const chunks = [];
-    const recorder = new MediaRecorder(outputStream, {
-      mimeType: format.mimeType,
-      videoBitsPerSecond: isVertical ? 3_200_000 : 3_500_000
-    });
-
-    const sourceW = sourceVideo.videoWidth || 1280;
-    const sourceH = sourceVideo.videoHeight || 720;
-    const halfW = Math.floor(sourceW / 2);
-
-    return await new Promise(async (resolve, reject) => {
-      let raf = 0;
-      const cleanup = () => {
-        cancelAnimationFrame(raf);
-        try { outputStream.getTracks().forEach(t => t.stop()); } catch (_) {}
-        if (audioContext) audioContext.close().catch(() => {});
-        sourceVideo.pause();
-      };
-      recorder.addEventListener("dataavailable", (event) => {
-        if (event.data && event.data.size) chunks.push(event.data);
-      });
-      recorder.addEventListener("error", (event) => {
-        cleanup();
-        reject(event.error || new Error("Recording export failed."));
-      }, { once: true });
-      recorder.addEventListener("stop", () => {
-        cleanup();
-        const blob = new Blob(chunks, { type: recorder.mimeType || format.mimeType });
-        if (!blob.size) return reject(new Error("The exported video was empty."));
-        resolve(blob);
-      }, { once: true });
-
-      const draw = () => {
-        ctx.fillStyle = "#080a12";
-        ctx.fillRect(0, 0, width, height);
-        if (isVertical) {
-          // Master recording is remote-left / local-right. For 9:16 platforms,
-          // crop those two halves and stack them vertically at full width.
-          const halfH = Math.floor(height / 2);
-          drawSourceRegion(ctx, sourceVideo, 0, 0, halfW, sourceH, 0, 0, width, halfH);
-          drawSourceRegion(ctx, sourceVideo, halfW, 0, sourceW - halfW, sourceH, 0, halfH, width, height - halfH);
-        } else {
-          drawSourceRegion(ctx, sourceVideo, 0, 0, sourceW, sourceH, 0, 0, width, height);
-        }
-        if (!sourceVideo.ended && recorder.state === "recording") raf = requestAnimationFrame(draw);
-      };
-
-      recorder.start(250);
-      try {
-        await sourceVideo.play();
-      } catch (_) {
-        cleanup();
-        return reject(new Error("Could not play the recording for export."));
-      }
-      sourceVideo.onended = () => {
-        if (recorder.state !== "inactive") recorder.stop();
-      };
-      draw();
-    });
-  } finally {
-    URL.revokeObjectURL(sourceUrl);
-  }
-}
-
-async function prepareRecordingPlatform(platform) {
-  if (!masterRecordingBlob) return;
-  selectedRecordingPlatform = platform;
-  document.querySelectorAll(".platform-button").forEach((btn) => btn.classList.toggle("active", btn.dataset.platform === platform));
-
-  const exportLabels = {
-    tiktok: "TikTok",
-    reels: "Instagram Reels",
-    shorts: "YouTube Shorts",
-    youtube: "YouTube",
-    original: "Original"
-  };
-  const label = exportLabels[platform] || "Original";
-  if (recordingResultText) recordingResultText.textContent = platform === "original" ? "Original recording selected." : `Preparing ${label} format locally…`;
-
-  const buttons = recordingPlatformPicker ? recordingPlatformPicker.querySelectorAll(".platform-button") : [];
-  buttons.forEach((btn) => { btn.disabled = true; });
-  try {
-    completedRecordingBlob = await exportRecordingForPlatform(platform);
-    if (completedRecordingUrl) URL.revokeObjectURL(completedRecordingUrl);
-    completedRecordingUrl = URL.createObjectURL(completedRecordingBlob);
-    if (recordingPreview) {
-      recordingPreview.src = completedRecordingUrl;
-      recordingPreview.load();
-    }
-    if (recordingResultText) recordingResultText.textContent = `${label} format is ready. Saved video stays on this device until you download or delete it.`;
-  } catch (err) {
-    console.error("[REC] Export failed:", err);
-    completedRecordingBlob = masterRecordingBlob;
-    if (completedRecordingUrl) URL.revokeObjectURL(completedRecordingUrl);
-    completedRecordingUrl = URL.createObjectURL(masterRecordingBlob);
-    if (recordingPreview) {
-      recordingPreview.src = completedRecordingUrl;
-      recordingPreview.load();
-    }
-    if (recordingResultText) recordingResultText.textContent = `${label} conversion was not supported on this device. The original recording is ready.`;
-  } finally {
-    buttons.forEach((btn) => { btn.disabled = false; });
-  }
 }
 
 if (downloadRecordingButton) {
   downloadRecordingButton.addEventListener("click", () => {
     if (!completedRecordingBlob) return;
+    
+    const format = getRecordingFormat();
     const url = URL.createObjectURL(completedRecordingBlob);
-    const ext = getRecordingExtension(completedRecordingBlob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `lela-encounter-${selectedRecordingPlatform}-${Date.now()}.${ext}`;
+    const timestamp = Date.now();
+    const platformSuffix = selectedRecordingFormat !== "auto" ? `-${selectedRecordingFormat}` : "";
+    a.download = `lela-encounter-${timestamp}${platformSuffix}.${format.extension}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1598,17 +1451,7 @@ if (downloadRecordingButton) {
 if (deleteRecordingButton) {
   deleteRecordingButton.addEventListener("click", () => {
     completedRecordingBlob = null;
-    masterRecordingBlob = null;
-    if (completedRecordingUrl) URL.revokeObjectURL(completedRecordingUrl);
-    completedRecordingUrl = null;
-    if (recordingPreview) recordingPreview.removeAttribute("src");
     if (recordingResultBackdrop) recordingResultBackdrop.classList.remove("show");
-  });
-}
-
-if (recordingPlatformPicker) {
-  recordingPlatformPicker.querySelectorAll(".platform-button").forEach((button) => {
-    button.addEventListener("click", () => prepareRecordingPlatform(button.dataset.platform || "original"));
   });
 }
 
