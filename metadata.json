@@ -1,0 +1,1 @@
+{"name":"LELA WebRTC \u0026 Admin Control Center","description":"Real-time video chat with a secure JWT-authenticated admin control panel, role-based access control, dynamic ad management, and system performance analytics.","requestFramePermissions":["camera","microphone"],"majorCapabilities":["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]}

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: lela-video-chat
+    env: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node server.cjs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true

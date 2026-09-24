@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>LELA — Live Video Chat</title>
+  <meta name="description" content="Face-to-face with a random stranger. Peer-to-peer video, text chat alongside, no account needed." />
+  <meta property="og:title" content="LELA — Live Video Chat" />
+  <meta property="og:description" content="Face-to-face with a random stranger. Peer-to-peer video, text chat alongside, no account needed." />
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="shortcut icon" href="svgbg.png" type="image/x-icon">
+
+  <style>
+    :root {
+      --bg-dark: #080a12;
+      --card-bg: rgba(18, 22, 41, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-purple: #7c4dff;
+      --accent-purple-hover: #9166ff;
+      --accent-glow: rgba(124, 77, 255, 0.4);
+      --danger: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --glass-bg: rgba(12, 16, 32, 0.75);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 15% 20%, #151838 0%, transparent 45%),
+                  radial-gradient(circle at 85% 80%, #21123d 0%, transparent 45%),
+                  var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---------------- SYSTEM BROADCAST BANNER ---------------- */
+    .system-broadcast-banner {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: linear-gradient(90deg, #1d4ed8, #0284c7);
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      z-index: 100;
+      animation: slideDown 0.3s ease;
+    }
+
+    .system-broadcast-banner.show {
+      display: flex;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-100%); }
+      to { transform: translateY(0); }
+    }
+
+    /* ---------------- HEADER ---------------- */
+
+    .top-bar {
+      height: 64px;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: rgba(8, 10, 18, 0.85);
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      z-index: 30;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-image-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-img {
+      height: 38px;
+      width: 38px;
+      display: block;
+      object-fit: contain;
+    }
+
+    .logo-text {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #00e5ff 0%, #7c4dff 50%, #ff55ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      white-space: nowrap;
+    }
+
+    .online-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .online-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* ---------------- MAIN LAYOUT ---------------- */
+
+    .main-container {
+      flex: 1;
+      padding: 14px 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      gap: 12px;
+    }
+
+    .video-grid {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr;
+      gap: 16px;
+      position: relative;
+    }
+
+    .video-card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: var(--card-bg);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #0c0e1a;
+    }
+
+    #localVideo { transform: scaleX(-1); }
+    #remoteVideo { transform: none; }
+
+    .video-label {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 5;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: var(--glass-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      font-weight: 600;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ---------------- PLACEHOLDERS ---------------- */
+
+    .video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 14px;
+      color: var(--text-muted);
+      background: radial-gradient(circle at center, rgba(124, 77, 255, 0.08), transparent 60%), #0c0e1a;
+      pointer-events: none;
+      text-align: center;
+      padding: 16px;
+    }
+
+    .placeholder-icon {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 52px;
+      color: #9ca3af;
+    }
+
+    .placeholder-icon svg {
+      width: 44px;
+      height: 44px;
+      filter: drop-shadow(0 0 8px rgba(124, 77, 255, 0.3));
+    }
+
+    .radar-sweep {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-purple);
+      opacity: 0;
+      animation: radar 2s infinite ease-out;
+      pointer-events: none;
+    }
+
+    @keyframes radar {
+      0% { transform: scale(0.3); opacity: 0.8; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .radar-sweep.delayed { animation-delay: 1s; }
+
+    .placeholder-text {
+      font-size: 15px;
+      color: #8b90a0;
+    }
+
+    /* ---------------- IN-VIDEO CHAT OVERLAY ---------------- */
+
+    .chat-panel {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 55%;
+      pointer-events: none;
+    }
+
+    .chat-panel * { pointer-events: auto; }
+
+    .chat-panel.chat-off .chat-messages {
+      opacity: 0.35;
+      filter: grayscale(0.5);
+    }
+
+    .chat-panel.chat-off .chat-input-row {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .chat-panel.chat-off .chat-input { cursor: not-allowed; }
+
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      max-height: 180px;
+      padding: 12px 4px 2px 4px;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 25%, black 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 25%, black 100%);
+    }
+
+    .chat-messages::-webkit-scrollbar { display: none; }
+
+    .chat-message {
+      width: fit-content;
+      max-width: 85%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      word-break: break-word;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes slideUpFade {
+      0% { opacity: 0; transform: translateY(12px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .chat-message.mine {
+      align-self: flex-end;
+      background: rgba(124, 77, 255, 0.85);
+      color: #ffffff;
+      border-bottom-right-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .chat-message.theirs {
+      align-self: flex-start;
+      background: rgba(18, 22, 41, 0.85);
+      color: var(--text-main);
+      border-bottom-left-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+      background: rgba(10, 14, 28, 0.85);
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+    }
+
+    .chat-input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: white;
+      font-family: inherit;
+      font-size: 13px;
+      padding: 0 8px;
+    }
+
+    .chat-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+
+    .send-button {
+      height: 34px;
+      padding: 0 14px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-purple);
+      color: white;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .send-button:hover { background: var(--accent-purple-hover); }
+
+    /* ---------------- SPONSORED ADS COMPONENT (ADMIN-CONTROLLED) ---------------- */
+    .sponsored-banner-container {
+      position: fixed; bottom: 86px; left: 20px; width: auto; max-width: 420px;
+      display: none; align-items: center; justify-content: flex-start; z-index: 35;
+      pointer-events: auto;
+    }
+    .sponsored-banner-container.show { display: flex; }
+    .sponsored-card {
+      width: 100%; max-width: 420px; background: rgba(13,17,34,.96);
+      border: 1px solid rgba(124,77,255,.38); border-radius: 12px; padding: 10px 12px;
+      display: flex; align-items: center; gap: 12px; backdrop-filter: blur(16px);
+      box-shadow: 0 8px 26px rgba(0,0,0,.55); position: relative; overflow: hidden;
+    }
+    .sponsored-banner-container.stranger-overlay {
+      position: absolute; top: 12px; right: 12px; bottom: auto; left: auto;
+      width: min(74%, 300px); max-width: 300px; z-index: 12;
+    }
+    .sponsored-banner-container.stranger-overlay .sponsored-card {
+      display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto auto;
+      width: 100%; max-width: none; padding: 9px; gap: 6px 8px;
+    }
+    .sponsored-banner-container.stranger-overlay .sponsored-badge { grid-column:1; grid-row:1; }
+    .sponsored-banner-container.stranger-overlay #sponsoredMediaSlot { grid-column:1 / -1; grid-row:2; }
+    .sponsored-banner-container.stranger-overlay .sponsored-content { grid-column:1; grid-row:3; }
+    .sponsored-banner-container.stranger-overlay .sponsored-close { grid-column:2; grid-row:1; }
+    .sponsored-banner-container.stranger-overlay .sponsored-media {
+      width: 100%; height: 118px; max-height: 26vh; display: block; object-fit: cover; border-radius: 8px;
+    }
+    .sponsored-banner-container.below-video {
+      position: relative; inset: auto; width: 100%; max-width: none; margin: 8px 0 3px;
+      justify-content: center; z-index: 15;
+    }
+    .sponsored-banner-container.below-video .sponsored-card { width: min(100%, 900px); max-width: 900px; padding: 12px 14px; }
+    .sponsored-banner-container.below-video .sponsored-media { width: 220px; height: 124px; }
+    .sponsored-banner-container.corner {
+      position: fixed; bottom: 86px; right: 20px; left: auto; width: auto; max-width: 360px; z-index: 40;
+    }
+    .sponsored-banner-container.corner .sponsored-card { max-width: 360px; }
+    .sponsored-badge {
+      font-size: 10px; font-weight: 800; letter-spacing:.6px; text-transform:uppercase; padding:3px 8px;
+      border-radius:6px; background:rgba(124,77,255,.25); border:1px solid rgba(124,77,255,.45); color:#c4b5fd; white-space:nowrap;
+    }
+    .sponsored-media { width: 76px; height: 48px; border-radius:8px; object-fit:cover; border:1px solid var(--card-border); background:#080a14; flex-shrink:0; display:block; }
+    .sponsored-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+    .sponsored-title { font-size:13px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sponsored-desc { font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:none; }
+    .sponsored-cta { font-size:11.5px; color:#a78bfa; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:600; width:fit-content; }
+    .sponsored-close { background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:16px; padding:4px 6px; border-radius:6px; line-height:1; }
+    .stranger-ad-slot { position:absolute; inset:0; pointer-events:none; z-index:10; }
+    .stranger-ad-slot > .sponsored-banner-container { pointer-events:auto; }
+
+    /* PICTURE-IN-PICTURE (PiP) AD VIDEO STYLING */
+    .pip-video-wrapper {
+      position: relative;
+      display: block;
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.65), 0 0 14px rgba(124, 77, 255, 0.3);
+      border: 1px solid rgba(124, 77, 255, 0.45);
+      line-height: 0;
+    }
+    .pip-video-media {
+      width: 100%;
+      height: 100%;
+      max-height: 160px;
+      object-fit: cover;
+      display: block;
+      border-radius: 8px;
+    }
+    .pip-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(10, 14, 28, 0.88);
+      border: 1px solid rgba(0, 229, 255, 0.6);
+      color: #67e8f9;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      z-index: 5;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+    .pip-pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00e5ff;
+      box-shadow: 0 0 8px #00e5ff;
+      animation: pulseDot 1.4s infinite ease-in-out;
+    }
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.75); }
+    }
+    .pip-overlay-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 6px 8px;
+      background: linear-gradient(0deg, rgba(5, 7, 18, 0.9) 0%, transparent 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      z-index: 5;
+    }
+    .pip-ctrl-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 5px;
+      padding: 3px 7px;
+      cursor: pointer;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      backdrop-filter: blur(6px);
+      transition: all 0.15s ease;
+    }
+    .pip-ctrl-btn:hover {
+      background: rgba(124, 77, 255, 0.6);
+      border-color: #7c4dff;
+      transform: translateY(-1px);
+    }
+    .pip-progress-track {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.18);
+      z-index: 6;
+    }
+    .pip-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #7c4dff, #00e5ff);
+    }
+
+    .sponsored-card.pip-mode {
+      border-color: rgba(0, 229, 255, 0.45);
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.75), 0 0 22px rgba(0, 229, 255, 0.18);
+    }
+    .sponsored-card.pip-mode .sponsored-badge {
+      background: rgba(0, 229, 255, 0.15);
+      border-color: rgba(0, 229, 255, 0.45);
+      color: #67e8f9;
+    }
+
+    /* WEBSITE UPDATE BANNER & NORMAL ANNOUNCEMENT (CLEAN, SOPHISTICATED, BLUE & AMBER THEMES) */
+    .lockout-sticky-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 42px;
+      z-index: 99998;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      background: rgba(12, 16, 26, 0.96);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+      padding: 0 16px;
+      color: #f1f5f9;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      pointer-events: auto !important;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* NORMAL ANNOUNCEMENT: COLOR BLUE */
+    .lockout-sticky-bar.normal-announcement {
+      background: linear-gradient(90deg, rgba(8, 24, 48, 0.97) 0%, rgba(13, 38, 76, 0.97) 50%, rgba(8, 24, 48, 0.97) 100%);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 2px 16px rgba(2, 132, 199, 0.25);
+    }
+    .lockout-sticky-bar.normal-announcement .lockout-badge-group {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+    }
+    .lockout-sticky-bar.normal-announcement .lockout-status-dot {
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8, 0 0 2px #0284c7;
+    }
+    .lockout-sticky-bar.normal-announcement .lockout-bar-title {
+      color: #f0f9ff;
+    }
+    .lockout-sticky-bar.normal-announcement .lockout-details-btn {
+      border-color: rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .lockout-sticky-bar.normal-announcement .lockout-details-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    /* LOCKED ANNOUNCEMENT: AMBER THEME */
+    .lockout-sticky-bar.locked-announcement {
+      background: rgba(14, 18, 28, 0.97);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+    }
+    .lockout-sticky-bar.locked-announcement .lockout-badge-group {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+    .lockout-sticky-bar.locked-announcement .lockout-status-dot {
+      background: #f59e0b;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.75);
+    }
+
+    .lockout-sticky-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .lockout-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+    .lockout-badge-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-weight: 700;
+      font-size: 10.5px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 3px 9px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      white-space: nowrap;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .lockout-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f59e0b;
+      flex-shrink: 0;
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+    .lockout-title-wrapper {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+    .lockout-bar-title {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+      line-height: 1.4;
+    }
+    .lockout-details-btn {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      padding: 4px 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+      flex-shrink: 0;
+      pointer-events: auto !important;
+    }
+    .lockout-details-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+    body.has-announcement-bar .app {
+      padding-top: 42px;
+    }
+    body.maintenance-locked .app {
+      padding-top: 42px;
+      pointer-events: none !important;
+      user-select: none !important;
+    }
+    body.maintenance-locked .app button,
+    body.maintenance-locked .app input {
+      cursor: not-allowed !important;
+    }
+
+    /* ---------------- MAINTENANCE MODAL & ENTRANCE ANIMATION ---------------- */
+    #maintenanceModalBackdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background: rgba(5, 8, 16, 0.65);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      pointer-events: auto !important;
+    }
+
+    /* CSS scale-up entrance animation with 0.3s duration */
+    @keyframes modalScaleUpEntrance {
+      0% {
+        opacity: 0;
+        transform: scale(0.92);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes backdropFadeIn {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+
+    #maintenanceModalBackdrop.show,
+    #maintenanceModalBackdrop[style*="display: flex"] {
+      display: flex !important;
+      animation: backdropFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    #maintenanceModalBackdrop.show .report-modal,
+    #maintenanceModalBackdrop[style*="display: flex"] .report-modal {
+      animation: modalScaleUpEntrance 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* ELEGANT MODAL TYPOGRAPHY & CARD DESIGN */
+    #maintenanceModalBackdrop .report-modal {
+      position: relative;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.68), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+      padding: 34px 28px 26px;
+      background: #101422;
+      border-radius: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    #maintenanceModalTitle {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #ffffff;
+      font-size: 21px;
+      font-weight: 650;
+      letter-spacing: -0.022em;
+      line-height: 1.32;
+      margin: 0 0 10px 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    #maintenanceModalText {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #94a3b8;
+      font-size: 14.5px;
+      font-weight: 400;
+      line-height: 1.65;
+      letter-spacing: -0.01em;
+      margin: 0 auto 24px auto;
+      max-width: 350px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    .maintenance-modal-icon-badge {
+      width: 50px;
+      height: 50px;
+      border-radius: 13px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px auto;
+      font-size: 22px;
+      box-shadow: 0 0 18px rgba(245, 158, 11, 0.15);
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .maintenance-modal-icon-badge.blue {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.3);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.18);
+    }
+
+    #dismissMaintenanceModalBtn {
+      width: 100%;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-weight: 600;
+      font-size: 13.5px;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto !important;
+      outline: none;
+    }
+
+    #dismissMaintenanceModalBtn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.28);
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    #dismissMaintenanceModalBtn:active {
+      transform: translateY(0);
+    }
+
+    /* ---------------- CLOSE BUTTON WITH 90 DEG ROTATION & PULSE / SHADOW ---------------- */
+    #closeMaintenanceModalBtn,
+    .maintenance-close-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      pointer-events: auto !important;
+      z-index: 10;
+    }
+
+    #closeMaintenanceModalBtn svg,
+    .maintenance-close-btn svg {
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.2s ease;
+      transform-origin: center;
+    }
+
+    /* Hover effect: rotates icon 90 degrees and subtle shadow/pulse effect */
+    @keyframes closeBtnPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4), 0 2px 8px rgba(0, 0, 0, 0.35);
+      }
+      70% {
+        box-shadow: 0 0 0 7px rgba(255, 255, 255, 0), 0 4px 14px rgba(0, 0, 0, 0.45);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0), 0 2px 8px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    #closeMaintenanceModalBtn:hover,
+    .maintenance-close-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.3);
+      animation: closeBtnPulse 1.3s infinite ease-out;
+      transform: scale(1.05);
+    }
+
+    #closeMaintenanceModalBtn:hover svg,
+    .maintenance-close-btn:hover svg {
+      transform: rotate(90deg);
+      stroke: #ffffff;
+    }
+
+    #closeMaintenanceModalBtn:active,
+    .maintenance-close-btn:active {
+      transform: scale(0.95) rotate(90deg);
+    }
+
+    /* Video layout swap transition */
+    .video-grid.swapped #remoteVideoCard {
+      order: 2;
+    }
+    .video-grid.swapped #localVideoCard {
+      order: 1;
+    }
+
+    .swap-layout-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      height: 30px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      touch-action: manipulation;
+    }
+    .swap-layout-btn:hover {
+      background: rgba(124, 77, 255, 0.22);
+      border-color: rgba(124, 77, 255, 0.45);
+      color: #ffffff;
+    }
+    .swap-layout-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ---------------- CONTROL BAR ---------------- */
+
+    .controls {
+      min-height: 72px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      padding: 10px 24px;
+      background: rgba(8, 10, 18, 0.92);
+      border-top: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      z-index: 30;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .control-button {
+      height: 46px;
+      padding: 0 18px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition:
+        transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+        background 0.18s ease,
+        box-shadow 0.18s ease,
+        border-color 0.18s ease;
+    }
+
+    .control-button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .control-button:active:not(:disabled) {
+      transform: translateY(0) scale(0.97);
+    }
+
+    .control-button:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .control-button.primary {
+      background: linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%);
+      border: none;
+      color: white;
+      box-shadow: 0 4px 18px var(--accent-glow);
+    }
+
+    .control-button.primary:hover:not(:disabled) {
+      box-shadow: 0 6px 26px rgba(124, 77, 255, 0.55);
+      background: linear-gradient(135deg, var(--accent-purple-hover) 0%, #7180ff 100%);
+    }
+
+    .control-button.stop {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .control-button.stop:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 6px 18px rgba(239, 68, 68, 0.25);
+    }
+
+    .control-button.record {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.32);
+      color: #fca5a5;
+    }
+
+    .control-button.record:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.24);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .control-button.record.recording {
+      background: rgba(239, 68, 68, 0.24);
+      border-color: rgba(239, 68, 68, 0.65);
+      color: #fecaca;
+    }
+
+    .recording-indicator {
+      position: static;
+      align-self: center;
+      width: max-content;
+      margin: 0 auto;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(20, 8, 12, 0.85);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      color: #fecaca;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .recording-indicator.show { display: inline-flex; }
+
+    .recording-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+      animation: recordingPulse 1s ease-in-out infinite;
+    }
+
+    @keyframes recordingPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    .control-button.report {
+      background: transparent;
+      border-color: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .control-button.report:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    /* ---------------- MODALS ---------------- */
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-backdrop.show { display: flex; }
+
+    .report-modal {
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
+      border-radius: 20px;
+      background: #121526;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+    }
+
+    .report-modal h2 { margin-bottom: 8px; font-size: 20px; }
+    .report-modal p { margin-bottom: 18px; color: var(--text-muted); font-size: 14px; }
+    .report-options { display: flex; flex-direction: column; gap: 10px; }
+
+    .report-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .report-option:hover { background: rgba(255, 255, 255, 0.06); }
+    .report-option input { accent-color: var(--accent-purple); }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+    .modal-button {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      color: white;
+      background: rgba(255, 255, 255, 0.05);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .modal-button:hover { background: rgba(255, 255, 255, 0.1); }
+
+    .modal-button.submit {
+      background: linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%);
+      border: none;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .recording-result-modal {
+      width: 100%;
+      max-width: 680px;
+      padding: 24px;
+      border-radius: 20px;
+      background: #121526;
+      border: 1px solid var(--card-border);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+
+    .recording-preview {
+      display: block;
+      width: min(100%, 360px);
+      height: auto;
+      max-height: 50vh;
+      margin: 12px auto;
+      aspect-ratio: 9 / 16;
+      border-radius: 14px;
+      background: #080a12;
+      border: 1px solid var(--card-border);
+      object-fit: contain;
+    }
+
+    .recording-platform-picker {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 12px auto 4px;
+      max-width: 620px;
+    }
+    .platform-button {
+      min-height: 40px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .platform-button.active {
+      background: linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%);
+      border-color: transparent;
+      color: #fff;
+    }
+    .platform-button:disabled { opacity: .55; cursor: wait; }
+    @media (max-width: 520px) {
+      .recording-platform-picker { grid-template-columns: 1fr; }
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .top-bar { padding: 0 10px; height: 52px; min-height: 52px; }
+      .status { display: none; }
+      .main-container { padding: 6px; }
+      .video-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1.2fr);
+        gap: 6px;
+      }
+      .controls { min-height: 58px; padding: 6px 10px; gap: 6px; flex-wrap: wrap; }
+      .control-button { height: 38px; padding: 0 10px; font-size: 12px; flex: 1; min-width: 80px; }
+      
+      .sponsored-banner-container.below-video { position:relative; width:100%; max-width:100%; margin:5px 0 3px; }
+      .sponsored-banner-container.below-video .sponsored-card { width:100%; max-width:100%; padding:8px 10px; gap:8px; }
+      .sponsored-banner-container.below-video .sponsored-media { width:150px; height:84px; }
+      .sponsored-banner-container.stranger-overlay { top:8px; right:8px; width:min(74%,260px); max-width:260px; }
+      .sponsored-banner-container.stranger-overlay .sponsored-card { padding:8px; }
+      .sponsored-banner-container.stranger-overlay .sponsored-media { width:100%; height:96px; max-height:30vh; }
+      .sponsored-banner-container.corner { left:8px; right:8px; bottom:68px; max-width:none; justify-content:center; }
+      .sponsored-banner-container.corner .sponsored-card { width:min(100%,360px); max-width:360px; }
+      .sponsored-banner-container.corner .sponsored-media { width:120px; height:68px; }
+      .sponsored-badge { font-size:8.5px; padding:2px 5px; }
+      .sponsored-title { font-size:11.5px; }
+      .sponsored-desc { font-size:10px; }
+      .sponsored-cta {
+        font-size: 10.5px;
+      }
+      .sponsored-close {
+        font-size: 14px;
+        padding: 2px 5px;
+      }
+      
+      /* Mobile chat panel & send button: high z-index, responsive and unobstructed */
+      .chat-panel {
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
+        gap: 6px;
+      }
+      .chat-input-row {
+        min-height: 44px;
+        padding: 4px 6px;
+        z-index: 20;
+      }
+      .chat-input {
+        font-size: 16px; /* Prevents auto-zoom on mobile safari */
+        height: 36px;
+      }
+      .send-button {
+        height: 36px;
+        min-width: 64px;
+        font-size: 13px;
+        touch-action: manipulation;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- WEBSITE UPDATE ANNOUNCEMENT BAR (CLEAN, MINIMAL, SOPHISTICATED) -->
+  <div id="lockoutStickyBar" class="lockout-sticky-bar" style="display: none;" role="alert">
+    <div class="lockout-sticky-inner">
+      <div class="lockout-bar-left">
+        <div class="lockout-badge-group">
+          <span class="lockout-status-dot"></span>
+          <span id="lockoutBarBadgeText">Update</span>
+        </div>
+        <div class="lockout-title-wrapper">
+          <span id="lockoutBarTitle" class="lockout-bar-title">Website is in Update</span>
+        </div>
+      </div>
+      <button id="reopenMaintenanceModalBtn" type="button" class="lockout-details-btn">View details</button>
+    </div>
+  </div>
+
+  <div class="app">
+
+    <!-- ADMIN BROADCAST BANNER -->
+    <div id="broadcastBanner" class="system-broadcast-banner">
+      <span id="broadcastMessage">System announcement</span>
+    </div>
+
+    <!-- HEADER -->
+    <header class="top-bar">
+      <a href="/" class="logo">
+        <div class="logo-image-wrapper">
+          <img src="svgbg.png" alt="LELA Logo" class="logo-img" onerror="this.src='/svgbg.svg'" />
+        </div>
+        <span class="logo-text">ሌላ</span>
+      </a>
+
+      <div class="header-right">
+        <button id="swapLayoutBtn" class="swap-layout-btn" title="Swap Video Positions (Top / Bottom)" type="button" aria-label="Swap Video Positions">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16"/></svg>
+          <span class="swap-text">Flip</span>
+        </button>
+
+        <div id="status" class="status">
+          Click Start Camera to begin
+        </div>
+
+        <div id="onlineCount" class="online-count" aria-live="polite" title="People currently connected">
+          <span class="online-dot"></span>
+          <span id="onlineCountText">0 online</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN VIEW -->
+    <main class="main-container">
+
+      <!-- RECORDING STATUS -->
+      <div id="recordingStatus" class="recording-indicator" aria-live="polite">
+        <span class="recording-dot"></span>
+        <span>Recording <strong id="recordingTime">00:00</strong></span>
+      </div>
+
+      <div class="video-grid" id="videoGrid">
+
+        <!-- STRANGER CARD -->
+        <section class="video-card" id="remoteVideoCard">
+          <video id="remoteVideo" autoplay playsinline></video>
+
+          <div class="video-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            Stranger
+          </div>
+
+          <div id="strangerAdSlot" class="stranger-ad-slot" aria-hidden="true"></div>
+
+          <div id="remotePlaceholder" class="video-placeholder">
+            <div class="placeholder-icon">
+              <div class="radar-sweep"></div>
+              <div class="radar-sweep delayed"></div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div class="placeholder-text">
+              Waiting for partner...
+            </div>
+          </div>
+        </section>
+
+        <!-- YOU CARD -->
+        <section class="video-card" id="localVideoCard">
+          <video id="localVideo" autoplay muted playsinline></video>
+
+          <div class="video-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            You
+          </div>
+
+          <div id="localPlaceholder" class="video-placeholder">
+            <div class="placeholder-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </div>
+            <div class="placeholder-text">
+              Camera Off
+            </div>
+          </div>
+
+          <!-- CHAT FLOATING OVER YOUR VIDEO -->
+          <div class="chat-panel">
+            <div id="chatMessages" class="chat-messages"></div>
+            <form id="chatForm" class="chat-input-row">
+              <input id="chatInput" class="chat-input" type="text" maxlength="500" autocomplete="off" placeholder="Type a message..." />
+              <button id="sendChatButton" class="send-button" type="submit">Send</button>
+            </form>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- SPONSORED AD PLACEMENT (DYNAMICALLY MANAGED BY ADMIN) -->
+      <div id="sponsoredBannerContainer" class="sponsored-banner-container">
+        <div class="sponsored-card" id="sponsoredCard">
+          <span class="sponsored-badge">Sponsored</span>
+          <div id="sponsoredMediaSlot"></div>
+          <div class="sponsored-content">
+            <div class="sponsored-title" id="sponsoredTitle">Featured Announcement</div>
+            <div class="sponsored-desc" id="sponsoredDesc"></div>
+            <a href="#" target="_blank" rel="noopener noreferrer" class="sponsored-cta" id="sponsoredCta">
+              Learn more ↗
+            </a>
+          </div>
+          <button class="sponsored-close" id="sponsoredCloseBtn" title="Dismiss ad">✕</button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- CONTROLS -->
+    <footer class="controls">
+      <div class="control-group">
+        <button id="startButton" class="control-button primary" type="button">
+          🎥 Start Camera
+        </button>
+
+        <button id="stopButton" class="control-button stop" type="button" disabled>
+          ⏹ Stop
+        </button>
+      </div>
+
+      <div class="control-group">
+        <button id="nextButton" class="control-button primary" type="button" disabled>
+          ⏭ Next
+        </button>
+
+        <button id="recordButton" class="control-button record" type="button" disabled>
+          🔴 Record
+        </button>
+
+        <button id="chatToggleButton" class="control-button" type="button" disabled>
+          💬 Chat: ON
+        </button>
+
+        <button id="reportButton" class="control-button report" type="button" disabled>
+          🚩 Report
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- RECORDING RESULT MODAL -->
+  <div id="recordingResultBackdrop" class="modal-backdrop">
+    <div class="recording-result-modal">
+      <h2>Your encounter is ready 🎬</h2>
+      <p id="recordingResultText">Choose the format you want to save.</p>
+      <div id="recordingPlatformPicker" class="recording-platform-picker" aria-label="Choose recording format">
+        <button class="platform-button" data-platform="tiktok" type="button">TikTok · 9:16</button>
+        <button class="platform-button" data-platform="reels" type="button">Instagram Reels · 9:16</button>
+        <button class="platform-button" data-platform="shorts" type="button">YouTube Shorts · 9:16</button>
+        <button class="platform-button" data-platform="youtube" type="button">YouTube · 16:9</button>
+        <button class="platform-button active" data-platform="original" type="button">Original</button>
+      </div>
+      <video id="recordingPreview" class="recording-preview" controls playsinline preload="metadata"></video>
+      <div class="modal-actions">
+        <button id="downloadRecordingButton" class="modal-button submit" type="button">⬇ Save to device</button>
+        <button id="deleteRecordingButton" class="modal-button" type="button">🗑 Delete recording</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT MODAL -->
+  <div id="reportModalBackdrop" class="modal-backdrop">
+    <div class="report-modal">
+      <h2>Report this person</h2>
+      <p>Please tell us why you are reporting this user.</p>
+
+      <div class="report-options">
+        <label class="report-option">
+          <input type="radio" name="reportReason" value="Nudity / Sexual content" checked />
+          <span>Nudity / Sexual content</span>
+        </label>
+        <label class="report-option">
+          <input type="radio" name="reportReason" value="Harassment / Bullying" />
+          <span>Harassment / Bullying</span>
+        </label>
+        <label class="report-option">
+          <input type="radio" name="reportReason" value="Hate / Abusive behavior" />
+          <span>Hate / Abusive behavior</span>
+        </label>
+        <label class="report-option">
+          <input type="radio" name="reportReason" value="Spam / Advertising" />
+          <span>Spam / Advertising</span>
+        </label>
+        <label class="report-option">
+          <input type="radio" name="reportReason" value="Other" />
+          <span>Other</span>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelReportButton" class="modal-button" type="button">Cancel</button>
+        <button id="submitReportButton" class="modal-button submit" type="button">Submit Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANNED MODAL -->
+  <div id="bannedModalBackdrop" class="modal-backdrop">
+    <div class="report-modal" style="text-align: center; border-color: rgba(239, 68, 68, 0.4);">
+      <div style="font-size: 48px; margin-bottom: 12px;">🚫</div>
+      <h2 style="color: #ef4444;">Access Suspended</h2>
+      <p id="bannedReasonText">You have been suspended from using this service due to a violation of community guidelines.</p>
+    </div>
+  </div>
+
+  <!-- WEBSITE UPDATE MODAL (ELEGANT WITH CLOSE BUTTON & TRANSLUCENT OVERLAY) -->
+  <div id="maintenanceModalBackdrop" class="modal-backdrop">
+    <div class="report-modal">
+      <!-- X CLOSE BUTTON -->
+      <button id="closeMaintenanceModalBtn" type="button" class="maintenance-close-btn" aria-label="Close update notice" title="Dismiss notice">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div id="maintenanceModalIcon" class="maintenance-modal-icon-badge">🛠️</div>
+      <h2 id="maintenanceModalTitle">Website is in Update</h2>
+      <p id="maintenanceModalText">
+        We are currently updating the platform to bring you a better experience. We will be right back!
+      </p>
+
+      <button id="dismissMaintenanceModalBtn" type="button">
+        View Website
+      </button>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

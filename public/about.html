@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n-title="ab.title">About — LELA</title>
+  <meta name="description" content="Why LELA exists, how moderation works, what is never stored, and who pays for it." />
+  <meta name="theme-color" content="#EDEBE6" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="About LELA" />
+  <meta property="og:description" content="Why LELA exists, how moderation works, what is never stored, and who pays for it." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+Ethiopic:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="shortcut icon" href="svgbg.png" type="image/x-icon" />
+  <link rel="stylesheet" href="/landing.css" />
+  <script src="/theme-init.js"></script>
+  <script src="/language.js" defer></script>
+  <script src="/landing.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="a11y.skip">Skip to content</a>
+
+  <!-- ───────────────────────── NAV ───────────────────────── -->
+  <header class="nav shell">
+    <a class="wordmark" href="/" aria-label="LELA home"><img class="nav-logo" src="/svgbg.png" alt="" width="26" height="26" /><span data-i18n="brand.word">LELA</span></a>
+
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/#how" data-i18n="nav.how">How it works</a>
+      <a href="/about" aria-current="page" data-i18n="nav.about">About</a>
+      <a href="/contact" data-i18n="nav.contact">Contact</a>
+    </nav>
+
+    <div class="nav-tools">
+      <span class="live-pill" id="livePill" title="People currently connected">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span id="liveCount" class="js-live-count" data-i18n="live.initial">Online</span>
+      </span>
+
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+        <span class="sep" aria-hidden="true">/</span>
+        <button type="button" data-lang="am" aria-pressed="false" lang="am">አማ</button>
+      </div>
+
+      <button class="theme-toggle" id="themeToggle" type="button" data-i18n-attr="aria-label:theme.toDark" aria-label="Switch to dark mode">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+        </svg>
+      </button>
+
+      <a class="nav-enter" href="/app" data-i18n="nav.enter">Enter</a>
+
+      <button class="burger" id="navBurger" type="button" aria-expanded="false" aria-controls="navDrawer" data-i18n-attr="aria-label:drawer.open" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ───────────────────────── DRAWER ───────────────────────── -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <nav class="drawer" id="navDrawer" aria-label="Menu" data-i18n-attr="aria-label:drawer.menu">
+    <div class="drawer-head">
+      <span class="wordmark" aria-hidden="true"><img class="nav-logo" src="/svgbg.png" alt="" width="26" height="26" /><span data-i18n="brand.word">LELA</span></span>
+      <button class="drawer-close" id="drawerClose" type="button" data-i18n-attr="aria-label:drawer.close" aria-label="Close menu"></button>
+    </div>
+
+    <ul class="drawer-links">
+      <li><a href="/#how" data-i18n="nav.how">How it works</a></li>
+      <li><a href="/about" data-i18n="nav.about">About</a></li>
+      <li><a href="/contact" data-i18n="nav.contact">Contact</a></li>
+      <li><a href="/guidelines" data-i18n="nav.guidelines">Guidelines</a></li>
+    </ul>
+
+    <div class="drawer-utility">
+      <div class="drawer-utility-row">
+        <span class="live-pill" aria-hidden="true">
+          <span class="live-dot"></span>
+          <span class="js-live-count" data-i18n="live.initial">Online</span>
+        </span>
+
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+          <span class="sep" aria-hidden="true">/</span>
+          <button type="button" data-lang="am" aria-pressed="false" lang="am">አማ</button>
+        </div>
+
+        <button class="theme-toggle" id="themeToggleDrawer" type="button" data-i18n-attr="aria-label:theme.toDark" aria-label="Switch to dark mode">
+          <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+          </svg>
+        </button>
+      </div>
+
+      <a class="btn" href="/app" data-i18n="cta.start">Start video chat</a>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- HERO: atmosphere band — eyebrow, statement, spectrum sparkles -->
+    <section class="about-hero">
+      <div class="about-hero-in shell">
+        <span class="sparkle sparkle-a" aria-hidden="true"></span>
+        <span class="sparkle sparkle-b" aria-hidden="true"></span>
+
+        <p class="about-eye" data-i18n="ab.eyebrow">ABOUT US</p>
+        <h1 data-i18n="ab.h1">About <em>LELA</em></h1>
+        <p class="standfirst" data-i18n="ab.stand">
+          A random video chat built the boring way: your camera goes to one
+          person, not to us, and someone reads every report.
+        </p>
+      </div>
+    </section>
+
+    <!-- WHAT WE STAND FOR: statement left, why-it-exists right -->
+    <section class="section shell about-intro">
+      <div class="about-lead">
+        <p class="about-eye" data-i18n="ab.eye1">WHAT WE STAND FOR</p>
+        <p class="about-big" data-i18n="ab.big1">Small on purpose, <em>serious</em> where it counts.</p>
+      </div>
+
+      <div class="about-col">
+        <h2 class="about-h" data-i18n="ab.s1">Why it exists</h2>
+        <p data-i18n="ab.p1">
+          Talking to a stranger used to be a normal thing on the internet. Most
+          services that offered it either shut down, added walls of sign-up forms,
+          or quietly started recording. LELA keeps the original promise &mdash;
+          open the page, meet one person &mdash; and fixes the parts that made
+          those services unpleasant: the accounts, the queues of profiles, and the
+          absence of anyone in charge when something goes wrong.
+        </p>
+      </div>
+    </section>
+
+    <!-- MISSION / IN PRACTICE -->
+    <section class="section section-tight shell about-pair">
+      <div class="about-col">
+        <p class="about-eye" data-i18n="ab.eye2">OUR MISSION</p>
+        <h2 class="about-h" data-i18n="ab.h2">Keep the original <em>promise</em>.</h2>
+        <p data-i18n="ab.p2">
+          It is deliberately small in scope. One stranger at a time, camera and
+          text, a Next button and a Report button. Nothing to configure and
+          nothing to swipe.
+        </p>
+      </div>
+
+      <div class="about-col">
+        <p class="about-eye" data-i18n="ab.eye3">IN PRACTICE</p>
+        <h2 class="about-h" data-i18n="ab.s2">How moderation works</h2>
+        <p data-i18n="ab.p3">
+          Every session carries a report control with reasons attached. A report
+          does not vanish into a filter &mdash; it lands in an admin queue where a
+          person opens it, checks the account history, and acts: a warning, a
+          removal from the session, or a ban. Repeat offenders are banned. Blocks
+          take effect immediately, without review, because in the moment you
+          should not have to argue for them.
+        </p>
+      </div>
+    </section>
+
+    <!-- WHAT WE NEVER DO: three cards -->
+    <section class="section shell about-never">
+      <h2 data-i18n="ab.s3">What we never do</h2>
+
+      <ul class="never-grid">
+        <li class="never-card" data-i18n="ab.li1"><b>No server-side recording.</b> Video and audio travel directly between the two browsers. The server introduces you and then steps out of the room.</li>
+        <li class="never-card" data-i18n="ab.li2"><b>No accounts.</b> No email, no password, no profile, nothing to delete later because nothing was kept.</li>
+        <li class="never-card" data-i18n="ab.li3"><b>No paywall.</b> There is no premium tier and no paid feature held back.</li>
+      </ul>
+
+      <div class="never-foot">
+        <p data-i18n="ab.p4">
+          The full rules live in the <a href="/guidelines">community guidelines</a>.
+          They are short on purpose so they can actually be read.
+        </p>
+        <p data-i18n="ab.p5">
+          If you record an encounter yourself, that recording stays on your own
+          device and is yours to keep or remove.
+        </p>
+      </div>
+    </section>
+
+    <!-- SAY HELLO: the purple gradient closer -->
+    <section class="about-cta">
+      <div class="shell">
+        <h2 data-i18n="ab.s5">Say hello</h2>
+        <p data-i18n="ab.p7">
+          Questions, bug reports, or press &mdash; the <a href="/contact">contact
+          page</a> reaches the team. For anything that happened inside a session,
+          use the report button instead; those are read first.
+        </p>
+        <a class="btn btn-on-grad" href="/app" data-i18n="cta.start">Start video chat</a>
+        <p class="fine" data-i18n="ab.fine">Last reviewed September 2026. This page describes how LELA actually works today, not a roadmap.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ───────────────────────── FOOTER ───────────────────────── -->
+  <footer class="footer shell">
+    <div class="footer-top">
+      <p class="footer-mark" lang="am" aria-label="LELA">ሌላ</p>
+      <a class="footer-cta" href="/app" data-i18n="cta.start">Start video chat</a>
+    </div>
+
+    <nav class="footer-links" aria-label="Footer">
+      <a href="/about" data-i18n="nav.about">About</a>
+      <a href="/#how" data-i18n="nav.how">How it works</a>
+      <a href="/contact" data-i18n="nav.contact">Contact</a>
+      <a href="/guidelines" data-i18n="nav.guidelines">Guidelines</a>
+      <a href="/privacy" data-i18n="nav.privacy">Privacy</a>
+      <a href="/terms" data-i18n="nav.terms">Terms</a>
+    </nav>
+
+    <div class="footer-bottom">
+      <p data-i18n="foot.desc">Random one-on-one video chat. Peer-to-peer, moderated, no account.</p>
+      <p class="footer-legal" data-i18n="foot.legal">© 2026 LELA. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
