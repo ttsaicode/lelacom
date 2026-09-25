@@ -5,13 +5,28 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { performance } = require("perf_hooks");
+const { isIP } = require("net");
 const WebSocket = require("ws");
-const formidable = require("formidable");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
 const supabase = require("./lib/supabase.cjs");
 const redis = require("./lib/redis.cjs");
+
+// Never let an unhandled Promise rejection silently kill the moderation/chat
+// runtime. Log the real reason so hosted runtimes (including Vercel) expose
+// something actionable instead of "Unhandled Rejection: [object Object]".
+process.on("unhandledRejection", (reason) => {
+  if (reason instanceof Error) {
+    console.error("[UNHANDLED REJECTION]", reason.stack || reason.message);
+  } else {
+    try {
+      console.error("[UNHANDLED REJECTION]", JSON.stringify(reason));
+    } catch (_) {
+      console.error("[UNHANDLED REJECTION]", String(reason));
+    }
+  }
+});
 
 // Runtime Port & Host configuration
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -19,16 +34,8 @@ const HOST = "0.0.0.0";
 
 const publicDir = path.join(__dirname, "public");
 const adminDir = path.join(__dirname, "admin");
-const uploadsDir = path.join(__dirname, "uploads");
 const dataDir = path.join(__dirname, "data");
 
-// Ensure required directories exist (skip on read-only filesystems like Vercel)
-const isReadOnlyFS = process.env.VERCEL || process.env.RENDER || process.env.FLY_APP_NAME;
-if (!isReadOnlyFS) {
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-}
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
@@ -59,18 +66,32 @@ const IS_PRODUCTION =
     process.env.ZEABUR_ENVIRONMENT
   );
 
-const JWT_SECRET = String(process.env.JWT_SECRET || "lela_jwt_secret_2026_super_secure_production_ready_key_99").trim();
-const JWT_EXPIRY = String(process.env.JWT_EXPIRY || "8h").trim();
+const JWT_SECRET = String(process.env.JWT_SECRET || "").trim();
+const JWT_EXPIRY = String(process.env.JWT_EXPIRY || "1h").trim();
 const JWT_ISSUER = "lela-admin";
 
-const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || "admin").trim();
-const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "admin123");
+const ADMIN_USERNAME = String(process.env.ADMIN_USERNAME || "").trim();
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "");
 
-// Private admin route. If ADMIN_PATH is set in environment (e.g. millie-is-awesome), use it; otherwise default to "/admin".
+// In production the public /admin route is never used. The real admin route
+// is supplied only through ADMIN_PATH. Local development may omit it.
 const rawAdminPath = String(process.env.ADMIN_PATH || "").trim();
 const ADMIN_ROUTE = rawAdminPath
   ? `/${rawAdminPath.replace(/^\/+|\/+$/g, "")}`
-  : "/admin";
+  : (IS_PRODUCTION ? null : "/admin");
+
+if (IS_PRODUCTION) {
+  const missing = [];
+  if (!JWT_SECRET || JWT_SECRET.length < 32) missing.push("JWT_SECRET (32+ chars)");
+  if (!ADMIN_USERNAME) missing.push("ADMIN_USERNAME");
+  if (!ADMIN_PASSWORD) missing.push("ADMIN_PASSWORD");
+  if (!ADMIN_ROUTE) missing.push("ADMIN_PATH");
+  if (!supabase.isSupabaseConfigured()) missing.push("SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY");
+  if (missing.length) {
+    console.error(`[SECURITY] Missing required production configuration: ${missing.join(", ")}`);
+    process.exit(1);
+  }
+}
 
 const ALLOWED_ORIGINS = new Set(
   String(process.env.ALLOWED_ORIGINS || "")
@@ -189,11 +210,24 @@ async function resetLoginAttempts(ip, username = "") {
 
 // Helper: Client IP detection with proxy support
 function getClientIp(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
+  const headers = req?.headers || {};
+  const candidates = [
+    headers["x-vercel-forwarded-for"],
+    headers["cf-connecting-ip"],
+    headers["x-real-ip"],
+    headers["x-forwarded-for"],
+    headers["true-client-ip"]
+  ];
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const first = String(raw).split(",")[0].trim();
+    if (first) {
+      const normalized = first.replace(/^\[|\]$/g, "");
+      if (isIP(normalized)) return normalized;
+    }
   }
-  return req.socket ? req.socket.remoteAddress : "unknown";
+  const remote = req?.socket?.remoteAddress || "unknown";
+  return isIP(remote) ? remote : String(remote);
 }
 
 // Helper: JSON Body parser with size limit (DoS protection)
@@ -232,15 +266,18 @@ async function verifyAdminToken(req) {
       audience: JWT_ISSUER
     });
 
-    if (await redis.isAdminTokenRevoked(token)) {
-      return null;
-    }
+    // Revocation check is best-effort and strictly time-bounded. A slow Redis
+    // connection must not make a valid JWT appear to expire.
+    const revoked = await Promise.race([
+      redis.isAdminTokenRevoked(token).catch(() => false),
+      new Promise((resolve) => setTimeout(() => resolve(false), 1500))
+    ]);
+    if (revoked) return null;
 
-    const currentSessionVersion = await redis.getAdminSessionVersion(decoded.id || "admin-root");
-    if (Number(decoded.sv || 0) !== Number(currentSessionVersion)) {
-      return null;
-    }
-
+    // Do not make JWT validity depend on a Redis session-version read.
+    // Redis can become ready/ready-again after a token is issued, which can
+    // otherwise cause valid sessions to be rejected ~20-30 seconds later.
+    // JWT signature/expiry + explicit token revocation remain the auth boundary.
     return { ...decoded, token };
   } catch (err) {
     return null;
@@ -310,18 +347,28 @@ const server = http.createServer(async (req, res) => {
     res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
   }
 
+  const supabaseOrigin = (() => {
+    try {
+      return process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : "";
+    } catch (_) {
+      return "";
+    }
+  })();
+
+  const adminConnectSrc = ["'self'", supabaseOrigin].filter(Boolean).join(" ");
+
   const adminCsp = [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https:",
-    "connect-src 'self'",
+    `connect-src ${adminConnectSrc}`,
     "worker-src 'self' blob:"
   ].join("; ");
 
@@ -358,8 +405,8 @@ const server = http.createServer(async (req, res) => {
   // ADMIN DASHBOARD HTML & AUTH
   // --------------------------------------------------
 
-  // Only hide the public /admin path if a custom private ADMIN_ROUTE is configured.
-  if (ADMIN_ROUTE !== "/admin" && (requestPath === "/admin" || requestPath === "/admin/" || requestPath === "/admin/index.html")) {
+  // Never expose an admin login at the predictable /admin URL.
+  if (requestPath === "/admin" || requestPath === "/admin/" || requestPath === "/admin/index.html") {
     res.writeHead(404, {
       "Content-Type": "text/plain; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
@@ -461,19 +508,18 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (isValidUser) {
-        await resetLoginAttempts(clientIp, username);
+        // Clear brute-force state without making the user wait on an external
+        // Redis round-trip when Redis is slow.
+        resetLoginAttempts(clientIp, username).catch(() => {});
 
-        const sessionVersion = await redis.getAdminSessionVersion(adminId);
-
-        // Sign cryptographically verified JWT token
+        // Sign cryptographically verified JWT token.
         const token = jwt.sign(
           {
             id: adminId,
             username,
             email,
             role: userRole,
-            permissions: ROLE_PERMISSIONS[userRole] || [],
-            sv: sessionVersion
+            permissions: ROLE_PERMISSIONS[userRole] || []
           },
           JWT_SECRET,
           {
@@ -484,7 +530,10 @@ const server = http.createServer(async (req, res) => {
           }
         );
 
-        await supabase.logAction("ADMIN_LOGIN", { username, role: userRole, ip: clientIp }, adminId, clientIp);
+        // Audit logging must never block an otherwise valid login.
+        supabase.logAction("ADMIN_LOGIN", { username, role: userRole, ip: clientIp }, adminId, clientIp).catch((logError) => {
+          console.warn("[ADMIN] Login audit log failed:", logError.message);
+        });
 
         return sendJson(200, {
           success: true,
@@ -605,73 +654,41 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // GET /api/admin/analytics/engagement - User Engagement Metrics & 30-Day Trends
+    // GET /api/admin/analytics/engagement - Real Supabase ad analytics
     if ((requestPath === "/api/admin/analytics/engagement" || requestPath === "/api/admin/analytics/trends") && req.method === "GET") {
-      const engagement = redis.getEngagementMetrics();
+      if (!hasPermission(admin.role, "analytics:read")) {
+        return sendJson(403, { error: "Forbidden. Insufficient permissions." });
+      }
+
       const ads = await supabase.getAds();
-
-      // Aggregate total metrics
-      const totalImpressions = ads.reduce((acc, a) => acc + (Number(a.impressions) || 0), 0);
-      const totalClicks = ads.reduce((acc, a) => acc + (Number(a.clicks) || 0), 0);
-
-      // Generate 30-day impression growth trends
-      const days = 30;
-      const trends = [];
-      const now = new Date();
-      const baseImpressions = Math.max(totalImpressions, 1450);
-      const baseClicks = Math.max(totalClicks, Math.round(baseImpressions * 0.052));
-
-      // Calculate smooth growth distribution
-      const weights = [];
-      let weightSum = 0;
-      for (let i = 0; i < days; i++) {
-        const progress = i / (days - 1);
-        const growthCurve = 0.35 + (progress * 1.65);
-        const dayOfWeek = (i % 7);
-        const seasonality = 1 + (0.12 * Math.sin((dayOfWeek * 2 * Math.PI) / 7));
-        const variance = 0.92 + (0.16 * ((Math.sin(i * 11) + 1) / 2));
-        const w = growthCurve * seasonality * variance;
-        weights.push(w);
-        weightSum += w;
-      }
-
-      let runningImp = 0;
-      let runningClicks = 0;
-      for (let i = 0; i < days; i++) {
-        const daysAgo = (days - 1) - i;
-        const d = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
-        const dateIso = d.toISOString().split("T")[0];
-        const dayImp = Math.max(8, Math.round((weights[i] / weightSum) * baseImpressions));
-        const dayClicks = Math.max(0, Math.round((weights[i] / weightSum) * baseClicks));
-        runningImp += dayImp;
-        runningClicks += dayClicks;
-
-        trends.push({
-          dayIndex: i,
-          date: dateIso,
-          formattedDate: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          dailyImpressions: dayImp,
-          cumulativeImpressions: runningImp,
-          dailyClicks: dayClicks,
-          cumulativeClicks: runningClicks,
-          ctr: dayImp > 0 ? ((dayClicks / dayImp) * 100).toFixed(2) + "%" : "0.00%"
-        });
-      }
+      const engagement = redis.getEngagementMetrics();
+      const analytics = await supabase.getAdAnalytics30d(30);
+      const totalImpressions = ads.reduce((sum, a) => sum + (Number(a.impressions) || 0), 0);
+      const totalClicks = ads.reduce((sum, a) => sum + (Number(a.clicks) || 0), 0);
+      const trends = analytics.trends30Days || [];
+      const totalImpressions30d = trends.reduce((sum, d) => sum + (Number(d.dailyImpressions) || 0), 0);
+      const totalClicks30d = trends.reduce((sum, d) => sum + (Number(d.dailyClicks) || 0), 0);
 
       return sendJson(200, {
         engagement,
         totalConfiguredAds: ads.length,
         totalImpressions,
         totalClicks,
+        totalImpressions30d,
+        totalClicks30d,
         overallCtr: totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) + "%" : "0.00%",
         trends30Days: trends,
-        topPerformingAds: ads.slice(0, 5).map(a => ({
-          id: a.id,
-          title: a.title,
-          impressions: a.impressions,
-          clicks: a.clicks,
-          ctr: a.impressions > 0 ? ((a.clicks / a.impressions) * 100).toFixed(2) + "%" : "0%"
-        }))
+        topPerformingAds: ads
+          .slice()
+          .sort((a, b) => (Number(b.impressions) || 0) - (Number(a.impressions) || 0))
+          .slice(0, 5)
+          .map(a => ({
+            id: a.id,
+            title: a.title,
+            impressions: Number(a.impressions) || 0,
+            clicks: Number(a.clicks) || 0,
+            ctr: Number(a.impressions) > 0 ? ((Number(a.clicks || 0) / Number(a.impressions)) * 100).toFixed(2) + "%" : "0.00%"
+          }))
       });
     }
 
@@ -717,110 +734,77 @@ const server = http.createServer(async (req, res) => {
       return sendJson(200, { ads: adsList, settings });
     }
 
-    // POST /api/admin/ads - Create New Ad (Handles Multipart or JSON)
+    // POST /api/admin/ads/upload-url - Create a short-lived direct upload URL
+    if (requestPath === "/api/admin/ads/upload-url" && req.method === "POST") {
+      if (!hasPermission(admin.role, "ads:write")) {
+        return sendJson(403, { error: "Forbidden. Insufficient permissions to upload ads." });
+      }
+      try {
+        const body = await parseJsonBody(req);
+        const originalName = String(body.filename || "").trim();
+        const mimeType = String(body.mimeType || "").trim().toLowerCase();
+        const size = Number(body.size || 0);
+        if (!originalName || !ALLOWED_UPLOAD_MIMES.has(mimeType)) {
+          return sendJson(400, { error: "Unsupported media type." });
+        }
+        if (!Number.isFinite(size) || size <= 0 || size > 20 * 1024 * 1024) {
+          return sendJson(400, { error: "Ad media must be 20 MB or smaller." });
+        }
+        const signed = await supabase.createSignedAdUpload(originalName, mimeType);
+        if (!signed) return sendJson(503, { error: "Supabase Storage is unavailable." });
+        return sendJson(200, signed);
+      } catch (error) {
+        console.error("[ADS] signed upload error:", error?.message || error);
+        return sendJson(503, { error: "Could not prepare the ad upload. Check the Supabase Storage bucket and server key configuration." });
+      }
+    }
+
+    // POST /api/admin/ads - Create New Ad from a Supabase-hosted media URL
     if (requestPath === "/api/admin/ads" && req.method === "POST") {
       if (!hasPermission(admin.role, "ads:write")) {
         return sendJson(403, { error: "Forbidden. Insufficient permissions to create ads." });
       }
+      try {
+        const body = await parseJsonBody(req);
+        const title = String(body.title || "").trim().slice(0, 90);
+        const link_url = sanitizeUrl(body.link_url);
+        const media_url = sanitizeUrl(body.media_url);
+        const media_path = String(body.media_path || "").trim().slice(0, 300);
+        const media_type = body.media_type === "video" ? "video" : "image";
+        const placement = ["stranger-overlay", "below-video", "corner"].includes(body.placement) ? body.placement : "stranger-overlay";
+        const active = body.active !== false;
 
-      // Use /tmp for uploads on Vercel (read-only filesystem), fallback to uploadsDir locally
-      const tempUploadDir = process.env.VERCEL || process.env.NODE_ENV === "production" 
-        ? "/tmp" 
-        : uploadsDir;
+        if (!title) return sendJson(400, { error: "Campaign name is required." });
+        if (!media_url || !media_path) return sendJson(400, { error: "A Supabase-hosted media file is required." });
 
-      const form = new formidable.IncomingForm({
-        uploadDir: tempUploadDir,
-        keepExtensions: true,
-        multiples: false,
-        maxFiles: 1,
-        maxFileSize: 45 * 1024 * 1024,
-        maxFields: 20,
-        maxFieldsSize: 128 * 1024
-      });
-
-      form.parse(req, async (err, fields, files) => {
-        if (err) {
-          console.error("Ad upload error:", err);
-          return sendJson(400, { error: "Upload failed: " + err.message });
-        }
-
-        const getVal = (v) => Array.isArray(v) ? v[0] : v;
-
-        const title = (getVal(fields.title) || "").trim() || "Sponsored Announcement";
-        const bodyText = (getVal(fields.body) || "").trim();
-        const cta_text = (getVal(fields.cta_text) || "").trim().slice(0, 30) || "Learn more ↗";
-        const device_target = getVal(fields.device_target) || "all";
-        const link_url = sanitizeUrl(getVal(fields.link_url));
-        const placement = getVal(fields.placement) || "stranger-overlay";
-        const rotation_seconds = parseInt(getVal(fields.rotation_seconds)) || 12;
-        const priority = parseInt(getVal(fields.priority)) || 1;
-        const active = getVal(fields.active) === "true" || getVal(fields.active) === true;
-
-        let mediaUrl = sanitizeUrl(getVal(fields.media_url));
-        let mediaType = "image";
-
-        // Validate uploaded file if present
-        if (files.media && files.media.length > 0) {
-          const file = files.media[0];
-          const ext = path.extname(file.originalFilename || file.filepath).toLowerCase();
-          const mime = file.mimetype;
-
-          // Strict extension & mime validation patch
-          if (!ALLOWED_UPLOAD_EXTS.has(ext) || !ALLOWED_UPLOAD_MIMES.has(mime)) {
-            try { fs.unlinkSync(file.filepath); } catch (e) {}
-            return sendJson(400, { error: `Invalid file type (${mime}). Only images (PNG, JPG, WEBP, GIF) and videos (MP4, WEBM) are permitted.` });
-          }
-
-          // Generate randomized secure filename
-          const safeFilename = "ad_" + crypto.randomBytes(16).toString("hex") + ext;
-          try {
-            const remoteUrl = await supabase.uploadAdMedia(
-              file.filepath,
-              file.originalFilename || safeFilename,
-              mime
-            );
-
-            if (remoteUrl) {
-              mediaUrl = remoteUrl;
-              try { fs.unlinkSync(file.filepath); } catch (_) {}
-            } else {
-              // Supabase not configured - require it for all uploads (no local fallback)
-              try { fs.unlinkSync(file.filepath); } catch (_) {}
-              return sendJson(503, { error: "Supabase Storage is required for ad media uploads. Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY." });
-            }
-            mediaType = mime.startsWith("video/") ? "video" : "image";
-          } catch (moveErr) {
-            console.error("Error storing uploaded media:", moveErr);
-            try { fs.unlinkSync(file.filepath); } catch (_) {}
-            return sendJson(500, { error: "Could not store uploaded media" });
-          }
-        } else if (mediaUrl) {
-          mediaType = mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? "video" : "image";
-        }
-
-        if (!mediaUrl) {
-          return sendJson(400, { error: "Media file or valid URL is required" });
+        const bucket = process.env.SUPABASE_ADS_BUCKET || "ad-media";
+        const expectedPrefix = `${String(process.env.SUPABASE_URL || "").replace(/\/+$/, "")}/storage/v1/object/public/${bucket}/`;
+        if (!expectedPrefix || !media_url.startsWith(expectedPrefix) || !media_path.startsWith("ads/")) {
+          return sendJson(400, { error: "Media must be uploaded through Supabase Storage." });
         }
 
         const newAd = await supabase.addAd({
           title,
-          body: bodyText,
-          cta_text,
-          device_target,
-          media_url: mediaUrl,
-          media_type: mediaType,
+          body: "",
+          cta_text: "Learn more ↗",
+          device_target: "all",
+          media_url,
+          media_path,
+          media_type,
           link_url,
           placement,
-          rotation_seconds,
-          priority,
+          rotation_seconds: 12,
+          priority: 5,
           active,
           created_by: admin.username
         });
 
-        await supabase.logAction("AD_CREATE", { id: newAd.id, title, mediaUrl }, admin.id, getClientIp(req));
+        await supabase.logAction("AD_CREATE", { id: newAd.id, title }, admin.id, getClientIp(req));
         return sendJson(201, { success: true, ad: newAd });
-      });
-      return;
+      } catch (error) {
+        console.error("[ADS] create error:", error.message);
+        return sendJson(500, { error: "Could not create the ad campaign." });
+      }
     }
 
     // PUT /api/admin/ads/:id/status - Toggle Ad Status
@@ -898,8 +882,12 @@ const server = http.createServer(async (req, res) => {
         media_type: source.media_type,
         link_url: source.link_url,
         placement: source.placement,
+        device_target: source.device_target || "all",
         rotation_seconds: source.rotation_seconds,
         priority: source.priority,
+        body: source.body || "",
+        cta_text: source.cta_text || "Learn more ↗",
+        media_path: source.media_path || null,
         active: false,
         created_by: admin.username
       });
@@ -915,8 +903,11 @@ const server = http.createServer(async (req, res) => {
       }
       const adId = adDeleteMatch[1];
       const ad = await supabase.getAdById(adId);
-      // Per specification: Media files in uploads directory must be preserved and never deleted
+      if (!ad) return sendJson(404, { error: "Ad not found" });
       await supabase.deleteAd(adId);
+      if (ad.media_path) {
+        await supabase.deleteAdMediaIfUnused(ad.media_path, adId);
+      }
       await supabase.logAction("AD_DELETE", { adId, title: ad.title }, admin.id, getClientIp(req));
       return sendJson(200, { success: true, message: "Ad deleted" });
     }
@@ -949,8 +940,31 @@ const server = http.createServer(async (req, res) => {
       if (!hasPermission(admin.role, "reports:read")) {
         return sendJson(403, { error: "Forbidden. Insufficient permissions." });
       }
-      const reports = await supabase.getReports({ limit: 100 });
-      return sendJson(200, { reports });
+      const reports = await supabase.getReports({ limit: 500 });
+      const ipAggregates = new Map();
+      for (const report of reports) {
+        const ip = String(report.reported_ip || "unknown");
+        if (ip === "unknown") continue;
+        let agg = ipAggregates.get(ip);
+        if (!agg) agg = { reportCount: 0, reporters: new Set() };
+        agg.reportCount += Number(report.report_count || 1);
+        const reporterIps = Array.isArray(report.reporter_ips) ? report.reporter_ips : [];
+        for (const reporterIp of reporterIps) {
+          if (reporterIp && reporterIp !== "unknown") agg.reporters.add(String(reporterIp));
+        }
+        if (reporterIps.length === 0 && report.reporter_ip && report.reporter_ip !== "unknown") agg.reporters.add(String(report.reporter_ip));
+        ipAggregates.set(ip, agg);
+      }
+      const enrichedReports = reports.map((report) => {
+        const agg = ipAggregates.get(String(report.reported_ip || "unknown"));
+        return {
+          ...report,
+          report_to_ip: String(report.reported_ip || "unknown"),
+          ip_report_count: Number(report.ip_report_count || (agg ? agg.reportCount : report.report_count || 1)),
+          ip_unique_reporters_count: Number(report.ip_unique_reporters_count || (agg ? agg.reporters.size : report.unique_reporters_count || 1))
+        };
+      });
+      return sendJson(200, { reports: enrichedReports });
     }
 
     // POST /api/admin/reports/:id/status - Update Report Status
@@ -975,20 +989,57 @@ const server = http.createServer(async (req, res) => {
       return sendJson(200, { bans });
     }
 
+    // POST /api/admin/reports/:id/ban - Atomic moderation action
+    const reportBanMatch = requestPath.match(/^\/api\/admin\/reports\/([^/]+)\/ban$/);
+    if (reportBanMatch && req.method === "POST") {
+      if (!hasPermission(admin.role, "bans:write")) {
+        return sendJson(403, { error: "Forbidden. Insufficient permissions to ban IPs." });
+      }
+      const reportId = reportBanMatch[1];
+      const report = await supabase.getReportById(reportId);
+      if (!report) return sendJson(404, { error: "Report not found" });
+      const ip = String(report.reported_ip || "").trim();
+      if (!ip || ip === "unknown" || !isIP(ip)) return sendJson(400, { error: "Report does not contain a valid IP address." });
+      const reason = String(report.reason || "Violation report").slice(0, 200);
+      await supabase.addBan({ ip, reason: `Violation report: ${reason}`, bannedBy: admin.username });
+      await redis.addBannedIp(ip);
+      await supabase.markReportsBannedByIp(ip, `Banned by ${admin.username}: ${reason}`);
+
+      for (const client of connectedClients) {
+        if (client.ip === ip) {
+          const peer = client.peer;
+          send(client, { type: "banned", reason: reason || "Suspended by moderator." });
+          if (peer) {
+            peer.peer = null;
+            send(peer, { type: "peer-disconnected" });
+            if (peer.ready) putInWaitingQueue(peer);
+          }
+          client.peer = null;
+          client.ready = false;
+          removeFromWaiting(client);
+          try { client.close(); } catch (_) {}
+        }
+      }
+      await supabase.logAction("BAN_IP_FROM_REPORT", { reportId, ip, reason }, admin.id, getClientIp(req));
+      return sendJson(200, { success: true, ip, reportId, message: `IP ${ip} banned and related reports marked banned.` });
+    }
+
     // POST /api/admin/ban - Ban IP
     if (requestPath === "/api/admin/ban" && req.method === "POST") {
       if (!hasPermission(admin.role, "bans:write")) {
         return sendJson(403, { error: "Forbidden. Insufficient permissions to ban IPs." });
       }
       const { ip, reason, durationHours } = await parseJsonBody(req);
-      if (!ip) return sendJson(400, { error: "Missing IP address" });
+      if (!ip || !isIP(String(ip).trim())) return sendJson(400, { error: "A valid IP address is required" });
+      const cleanIp = String(ip).trim();
 
-      await supabase.addBan({ ip, reason, bannedBy: admin.username, durationHours });
-      await redis.addBannedIp(ip);
+      await supabase.addBan({ ip: cleanIp, reason, bannedBy: admin.username, durationHours });
+      await redis.addBannedIp(cleanIp);
+      await supabase.markReportsBannedByIp(cleanIp, `Manual ban by ${admin.username}`);
 
       // Disconnect any active sockets matching this banned IP
       for (const client of connectedClients) {
-        if (client.ip === ip) {
+        if (client.ip === cleanIp) {
           send(client, { type: "banned", reason: reason || "Suspended by moderator." });
           if (client.peer) {
             send(client.peer, { type: "peer-disconnected" });
@@ -1003,7 +1054,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       await supabase.logAction("BAN_IP", { ip, reason, bannedBy: admin.username }, admin.id, getClientIp(req));
-      return sendJson(200, { success: true, message: `IP ${ip} banned successfully` });
+      return sendJson(200, { success: true, message: `IP ${cleanIp} banned successfully` });
     }
 
     // POST /api/admin/unban - Unban IP
@@ -1012,10 +1063,11 @@ const server = http.createServer(async (req, res) => {
         return sendJson(403, { error: "Forbidden. Insufficient permissions to unban IPs." });
       }
       const { ip } = await parseJsonBody(req);
-      if (!ip) return sendJson(400, { error: "Missing IP address" });
+      if (!ip || !isIP(String(ip).trim())) return sendJson(400, { error: "A valid IP address is required" });
+      const cleanIp = String(ip).trim();
 
-      await supabase.removeBan(ip);
-      await redis.removeBannedIp(ip);
+      await supabase.removeBan(cleanIp);
+      await redis.removeBannedIp(cleanIp);
       await supabase.logAction("UNBAN_IP", { ip }, admin.id, getClientIp(req));
       return sendJson(200, { success: true, message: `IP ${ip} unbanned` });
     }
@@ -1480,42 +1532,6 @@ const server = http.createServer(async (req, res) => {
     return res.end("Bad request");
   }
 
-  // Serve uploaded ad creatives with safe path verification
-  if (requestPath.startsWith("/uploads/")) {
-    const safeBaseName = path.basename(requestPath);
-    const uploadFilePath = path.join(uploadsDir, safeBaseName);
-
-    // Verify file stays within uploadsDir
-    if (!uploadFilePath.startsWith(uploadsDir + path.sep) && uploadFilePath !== uploadsDir) {
-      res.writeHead(403);
-      return res.end("Forbidden");
-    }
-
-    fs.readFile(uploadFilePath, (err, data) => {
-      if (err) {
-        res.writeHead(404);
-        return res.end("Not found");
-      }
-      const ext = path.extname(uploadFilePath).toLowerCase();
-      const contentTypes = {
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".gif": "image/gif",
-        ".webp": "image/webp",
-        ".avif": "image/avif",
-        ".mp4": "video/mp4",
-        ".webm": "video/webm"
-      };
-      res.writeHead(200, {
-        "Content-Type": contentTypes[ext] || "application/octet-stream",
-        "Cache-Control": "public, max-age=86400"
-      });
-      res.end(data);
-    });
-    return;
-  }
-
   // Standard static file serving from publicDir
   const filePath = path.resolve(publicDir, "." + requestPath);
 
@@ -1604,8 +1620,11 @@ function isAllowedWebSocketOrigin(request) {
       originUrl.hostname.endsWith(".localhost")
     ) return true;
 
-    // Allow default cloud platform subdomains (Railway, Render, Fly.io, Heroku, Koyeb, Vercel, Netlify, Zeabur, etc.)
-    if (
+    // In development, allow common local/cloud preview hosts. In production,
+    // do not trust arbitrary platform subdomains; explicitly configure them via
+    // ALLOWED_ORIGINS instead. This prevents an unrelated Vercel/Railway site
+    // from opening browser WebSocket connections to the production server.
+    if (!IS_PRODUCTION && (
       originUrl.hostname.endsWith(".railway.app") ||
       originUrl.hostname.endsWith(".up.railway.app") ||
       originUrl.hostname.endsWith(".onrender.com") ||
@@ -1615,7 +1634,7 @@ function isAllowedWebSocketOrigin(request) {
       originUrl.hostname.endsWith(".vercel.app") ||
       originUrl.hostname.endsWith(".netlify.app") ||
       originUrl.hostname.endsWith(".zeabur.app")
-    ) return true;
+    )) return true;
 
     // Support domain env vars (APP_URL, PUBLIC_URL, SERVER_URL, DOMAIN, etc.)
     const envUrls = [
@@ -1701,20 +1720,45 @@ function putInWaitingQueue(socket) {
   send(socket, { type: "waiting" });
 }
 
+function areMatchCompatible(clientA, clientB) {
+  if (!clientA || !clientB) return false;
+  if (clientA.peer || clientB.peer) return false;
+  if (clientA.blockedPeerIps && clientA.ip && clientA.blockedPeerIps.has(clientB.ip)) return false;
+  if (clientB.blockedPeerIps && clientB.ip && clientB.blockedPeerIps.has(clientA.ip)) return false;
+  return true;
+}
+
 function tryMatchUsers() {
   for (let i = waitingClients.length - 1; i >= 0; i--) {
-    if (waitingClients[i].readyState !== WebSocket.OPEN) {
+    const client = waitingClients[i];
+    if (!client || client.readyState !== WebSocket.OPEN || client.peer) {
       waitingClients.splice(i, 1);
     }
   }
 
   while (waitingClients.length >= 2) {
-    const clientA = waitingClients.shift();
-    const clientB = waitingClients.shift();
+    let pairA = -1;
+    let pairB = -1;
 
-    if (clientA.readyState !== WebSocket.OPEN || clientB.readyState !== WebSocket.OPEN) {
-      continue;
+    outer:
+    for (let i = 0; i < waitingClients.length - 1; i++) {
+      for (let j = i + 1; j < waitingClients.length; j++) {
+        if (areMatchCompatible(waitingClients[i], waitingClients[j])) {
+          pairA = i;
+          pairB = j;
+          break outer;
+        }
+      }
     }
+
+    // Everyone currently waiting is mutually blocked (for example, two users
+    // who just reported each other). Leave them waiting for a different user.
+    if (pairA === -1) break;
+
+    const clientB = waitingClients.splice(pairB, 1)[0];
+    const clientA = waitingClients.splice(pairA, 1)[0];
+
+    if (!areMatchCompatible(clientA, clientB)) continue;
 
     clientA.peer = clientB;
     clientB.peer = clientA;
@@ -1728,16 +1772,88 @@ function tryMatchUsers() {
   }
 }
 
+const adminRealtimeClients = new Set();
+let adminRealtimeChannelStarted = false;
+
+function broadcastAdminRealtime(payload) {
+  const message = JSON.stringify({ type: "admin-realtime", ...payload });
+  for (const client of adminRealtimeClients) {
+    if (client.readyState === WebSocket.OPEN) {
+      try { client.send(message); } catch (_) {}
+    }
+  }
+}
+
+function initAdminSupabaseRealtime() {
+  if (adminRealtimeChannelStarted || !supabase.isSupabaseConfigured()) return;
+  adminRealtimeChannelStarted = true;
+  const subscribe = supabase.subscribeToAdminRealtime((event) => {
+    broadcastAdminRealtime(event);
+  });
+  if (subscribe && typeof subscribe.catch === "function") {
+    subscribe.catch((error) => {
+      adminRealtimeChannelStarted = false;
+      console.warn("[SUPABASE] Admin Realtime subscription failed:", error.message);
+    });
+  }
+}
+
 wss.on("connection", async (socket, request) => {
   if (!isAllowedWebSocketOrigin(request)) {
     try { socket.close(1008, "Origin not allowed"); } catch (_) {}
     return;
   }
 
+  const requestPath = String(request.url || "").split("?")[0];
+  if (requestPath === "/__admin-realtime") {
+    socket.isAdminRealtime = true;
+    socket.authenticatedAdmin = null;
+    adminRealtimeClients.add(socket);
+    initAdminSupabaseRealtime();
+
+    socket.on("message", async (rawMessage) => {
+      try {
+        const message = JSON.parse(rawMessage.toString());
+        if (message?.type === "admin-auth" && !socket.authenticatedAdmin) {
+          const token = typeof message.token === "string" ? message.token.trim() : "";
+          const fakeReq = { headers: { authorization: `Bearer ${token}` } };
+          const admin = await verifyAdminToken(fakeReq);
+          if (!admin) {
+            socket.send(JSON.stringify({ type: "admin-auth-failed" }));
+            socket.close(1008, "Unauthorized");
+            return;
+          }
+          socket.authenticatedAdmin = admin;
+          socket.send(JSON.stringify({ type: "admin-auth-ok", user: { id: admin.id, username: admin.username, role: admin.role } }));
+        }
+      } catch (_) {}
+    });
+
+    socket.on("close", () => {
+      adminRealtimeClients.delete(socket);
+    });
+    socket.on("error", () => {
+      adminRealtimeClients.delete(socket);
+    });
+    return;
+  }
+
   const clientIp = getClientIp(request);
 
-  // Rapid Banned IP verification check
-  const banned = (await redis.isIpBannedFast(clientIp)) || (await supabase.isIpBanned(clientIp));
+  // Rapid ban verification. Redis is the fast path; Supabase is a bounded
+  // secondary check so a transient DB outage never crashes the WebSocket.
+  let banned = false;
+  try {
+    banned = await redis.isIpBannedFast(clientIp);
+  } catch (_) {}
+  if (!banned) {
+    try {
+      banned = await Promise.race([
+        supabase.isIpBanned(clientIp).catch(() => false),
+        new Promise((resolve) => setTimeout(() => resolve(false), 1500))
+      ]);
+    } catch (_) {}
+  }
   if (banned) {
     send(socket, { type: "banned", reason: "Access suspended due to community guidelines violation." });
     setTimeout(() => {
@@ -1751,6 +1867,7 @@ wss.on("connection", async (socket, request) => {
   socket.connectedAt = Date.now();
   socket.ready = false;
   socket.peer = null;
+  socket.blockedPeerIps = new Set();
 
   connectedClients.add(socket);
   redis.trackClient(socket.id, socket.ip);
@@ -1827,6 +1944,8 @@ wss.on("connection", async (socket, request) => {
 
       if (oldPeer) {
         oldPeer.peer = null;
+        if (socket.blockedPeerIps && oldPeer.ip) socket.blockedPeerIps.add(oldPeer.ip);
+        if (oldPeer.blockedPeerIps && socket.ip) oldPeer.blockedPeerIps.add(socket.ip);
         send(oldPeer, { type: "peer-disconnected" });
         if (oldPeer.ready) {
           putInWaitingQueue(oldPeer);
@@ -1856,14 +1975,71 @@ wss.on("connection", async (socket, request) => {
         reportedId: reportedPeer ? reportedPeer.id : null,
         reporterIp: socket.ip,
         reportedIp: reportedPeer ? reportedPeer.ip : "unknown",
-        reason: (typeof message.reason === "string" ? message.reason.slice(0, 100) : "Unspecified")
+        reason: (typeof message.reason === "string" ? message.reason.trim().slice(0, 100) : "Unspecified")
       };
 
-      await supabase.saveReport(reportData);
-      redis.publishEvent("reports:new", reportData);
+      // Reporting always ends the current encounter for BOTH users. The two
+      // peers are also prevented from immediately matching each other again.
+      removeFromWaiting(socket);
+      if (reportedPeer) {
+        socket.peer = null;
+        reportedPeer.peer = null;
+        if (socket.blockedPeerIps && reportedPeer.ip) socket.blockedPeerIps.add(reportedPeer.ip);
+        if (reportedPeer.blockedPeerIps && socket.ip) reportedPeer.blockedPeerIps.add(socket.ip);
+        if (socket.blockedPeerIps && socket.blockedPeerIps.size > 100) socket.blockedPeerIps.delete(socket.blockedPeerIps.values().next().value);
+        if (reportedPeer.blockedPeerIps && reportedPeer.blockedPeerIps.size > 100) reportedPeer.blockedPeerIps.delete(reportedPeer.blockedPeerIps.values().next().value);
+
+        send(socket, { type: "peer-disconnected" });
+        send(reportedPeer, { type: "peer-disconnected", reason: "The current encounter ended." });
+
+        if (reportedPeer.ready && reportedPeer.readyState === WebSocket.OPEN) {
+          putInWaitingQueue(reportedPeer);
+        }
+      }
+      if (socket.ready && socket.readyState === WebSocket.OPEN) {
+        putInWaitingQueue(socket);
+      }
+
+      let savedReport;
+      try {
+        savedReport = await supabase.saveReport(reportData);
+      } catch (error) {
+        console.error("[REPORT] Could not persist report:", error.message);
+        send(socket, { type: "report-save-error", message: "The report could not be saved. You have still been moved to a new encounter." });
+        tryMatchUsers();
+        return;
+      }
+
+      redis.publishEvent("reports:new", { ...reportData, ...savedReport });
       redis.incrementMetric("reportsReceived");
 
-      send(socket, { type: "report-received" });
+      const uniqueReporterCount = Number(savedReport.uniqueReportersCount || 1);
+      const ipReportCount = Number(savedReport.ipReportCount || savedReport.reportCount || 1);
+      const ipUniqueReporterCount = Number(savedReport.ipUniqueReportersCount || uniqueReporterCount || 1);
+      const escalated = ipUniqueReporterCount >= 3;
+      if (escalated) {
+        try {
+          await supabase.logAction("REPORT_ESCALATED", {
+            reportedIp: reportData.reportedIp,
+            reason: reportData.reason,
+            reportCount: Number(savedReport.reportCount || 1),
+            uniqueReporterCount
+          }, "system", socket.ip || "unknown");
+        } catch (logError) {
+          console.warn("[REPORT] Escalation log failed:", logError.message);
+        }
+      }
+      send(socket, {
+        type: "report-received",
+        duplicate: !!savedReport.duplicate,
+        reportCount: Number(savedReport.reportCount || 1),
+        uniqueReporterCount,
+        uniqueReportersCount: uniqueReporterCount,
+        ipReportCount,
+        ipUniqueReporterCount,
+        escalated
+      });
+      tryMatchUsers();
       return;
     }
 
@@ -1910,6 +2086,8 @@ wss.on("connection", async (socket, request) => {
 // START SERVER
 // ==================================================
 
+initAdminSupabaseRealtime();
+
 server.listen(PORT, HOST, () => {
   console.log("");
   console.log("==================================================");
@@ -1921,9 +2099,9 @@ server.listen(PORT, HOST, () => {
     console.log(`Admin Panel:     http://localhost:${PORT}/admin`);
   } else {
     console.log(`Public /admin:   404 Not Found`);
-    console.log(`Private Admin:   http://localhost:${PORT}${ADMIN_ROUTE}`);
+    console.log(`Private Admin:   configured (path hidden)`);
   }
-  console.log(`Default Super:   ${ADMIN_USERNAME} / ${ADMIN_PASSWORD}`);
+  console.log(`Admin Auth:       Environment-backed credentials`);
   console.log("==================================================");
   console.log("");
 });

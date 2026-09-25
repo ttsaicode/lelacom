@@ -124,6 +124,7 @@ let activeAdsList = [];
 let currentAdIndex = 0;
 let adRotationTimer = null;
 let adDismissed = false;
+let adPendingAfterNext = false;
 
 /* ============================================================
    DEBUG & STATUS HELPERS
@@ -238,20 +239,16 @@ async function initAdsEngine() {
     }
     activeAdsList = Array.isArray(data.ads) ? data.ads : [];
 
-    if (activeAdsList.length > 0 && !adDismissed) {
-      currentAdIndex = 0;
-      renderCurrentAd();
-      scheduleNextAd();
-    } else {
-      hideAllAds();
-    }
+    // Ads are loaded silently but are not displayed on the first encounter.
+    // They become eligible only after the user actually changes to another stranger.
+    hideAllAds();
   } catch (err) {
     console.warn("[ADS] Failed to load sponsored ads:", err);
   }
 }
 
 function renderCurrentAd() {
-  if (!activeAdsList.length || adDismissed || !adCard) return;
+  if (!activeAdsList.length || adDismissed || !adCard || !isMatched) return;
 
   const isMobile = isMobileOrCompressedViewport();
 
@@ -367,7 +364,7 @@ function renderCurrentAd() {
       const controls = document.createElement("div");
       controls.className = "pip-overlay-controls";
 
-      // Left controls: Play/Pause and Mute toggle
+      // Left control: Play/Pause only
       const leftControls = document.createElement("div");
       leftControls.style.display = "flex";
       leftControls.style.gap = "4px";
@@ -387,19 +384,7 @@ function renderCurrentAd() {
         }
       };
 
-      const muteBtn = document.createElement("button");
-      muteBtn.type = "button";
-      muteBtn.className = "pip-ctrl-btn";
-      muteBtn.title = "Mute / Unmute Sound";
-      muteBtn.innerHTML = "🔇";
-      muteBtn.onclick = (e) => {
-        e.stopPropagation();
-        vid.muted = !vid.muted;
-        muteBtn.innerHTML = vid.muted ? "🔇" : "🔊";
-      };
-
       leftControls.appendChild(playBtn);
-      leftControls.appendChild(muteBtn);
 
       // Right control: Browser Picture-in-Picture pop-out
       const popoutBtn = document.createElement("button");
@@ -897,6 +882,13 @@ async function handleSignalingMessage(message) {
     case "matched":
       isMatched   = true;
       chatEnabled = true;
+      if (adPendingAfterNext && activeAdsList.length > 0) {
+        adPendingAfterNext = false;
+        adDismissed = false;
+        currentAdIndex = 0;
+        renderCurrentAd();
+        scheduleNextAd();
+      }
       clearChat();
       applyChatState();
 
@@ -940,6 +932,27 @@ async function handleSignalingMessage(message) {
 
     case "peer-disconnected":
       handlePeerDisconnected();
+      break;
+
+    case "report-received":
+      closeReportModal();
+      if (message.duplicate) {
+        setStatus(`Report already counted. ${message.reportCount || 1} report(s) for this reason. Seeking someone new...`);
+      } else if (message.escalated) {
+        setStatus(`Report submitted and flagged for review (${message.uniqueReportersCount || message.uniqueReporterCount || 1} unique reporter(s)). Seeking someone new...`);
+      } else {
+        setStatus("Report submitted. Seeking someone new...");
+      }
+      break;
+
+    case "report-rate-limited":
+      closeReportModal();
+      setStatus(message.message || "Too many reports. Please try again later.");
+      break;
+
+    case "report-save-error":
+      closeReportModal();
+      setStatus(message.message || "Report could not be saved. Seeking someone new...");
       break;
 
     case "banned":
@@ -1300,18 +1313,20 @@ function stopVideoChat() {
 
 function nextStranger() {
   if (!hasStartedCamera) return;
-  
-  // Reset ad dismissal state so ads can show again after Next is clicked
+
+  // A new ad opportunity is created only when Next actually changes the encounter.
+  adPendingAfterNext = true;
   adDismissed = false;
-  if (activeAdsList.length > 0) {
-    currentAdIndex = 0;
-    renderCurrentAd();
-    scheduleNextAd();
+  hideAllAds();
+  if (adRotationTimer) {
+    clearTimeout(adRotationTimer);
+    adRotationTimer = null;
   }
-  
+
   sendMessage({ type: "skip" });
   handlePeerDisconnected();
 }
+
 
 /* ============================================================
    IN-VIDEO CHAT
@@ -1394,7 +1409,7 @@ function submitReport() {
   }
   sendMessage({ type: "report", reason: selected.value });
   closeReportModal();
-  alert("Violation report submitted to moderators.");
+  setStatus("Submitting report and ending this encounter...");
 }
 
 /* ============================================================

@@ -73,3 +73,26 @@ web: node server.cjs
 - **Zero-Dependency Core**: If `SUPABASE_URL` or `REDIS_URL` are not supplied, the server seamlessly runs its high-performance in-memory database and caching engines.
 - **WebRTC Signaling**: WebSockets dynamically adapt to `ws://` or `wss://` based on `window.location.protocol`.
 - **CORS & WebSocket Origin Validation**: Automatically trusts common PaaS subdomains (`.onrender.com`, `.fly.dev`, `.koyeb.app`, `.herokuapp.com`, `.railway.app`, `.vercel.app`) as well as any domain defined in `ALLOWED_ORIGINS` or `APP_URL`.
+
+## Release v3 fixes
+- Admin authentication no longer depends on Redis session-version reads, preventing valid JWT sessions from being rejected after Redis becomes ready/reconnects.
+- Admin login returns before audit logging finishes; dashboard data loads asynchronously.
+- Reports aggregate repeated reports by target IP while preventing the same reporter IP from re-reporting the same target.
+- Report moderation shows target IP, aggregate IP report count, unique reporter count, reason-level count, and Ban/Unban actions.
+- Ban-from-report is atomic and marks all related reports for the target IP as banned.
+- Admin dashboard receives Supabase Realtime changes through an authenticated admin WebSocket channel.
+- Ad create/edit forms contain only the fields needed for publishing and controlling an ad.
+
+Run SUPABASE_RELEASE_MIGRATION.sql once in the Supabase SQL Editor before production use.
+
+## Ad media storage
+Ad media is uploaded directly to the Supabase `ad-media` Storage bucket using a signed upload URL. The app no longer uses an application `uploads/` directory for ad media. The bucket is created/checked once per process when needed. The configured maximum is 20 MB.
+
+For production, prefer creating the `ad-media` bucket in Supabase Storage ahead of time and keep `SUPABASE_SERVICE_ROLE_KEY` (or the server-side secret key) only in server environment variables.
+
+
+## Release v4 hardening notes
+- Keep `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_SECRET_KEY` server-side only.
+- The `ad-media` bucket should exist in Supabase Storage before production traffic; the server also checks/creates it once per process when needed.
+- Run `SUPABASE_RELEASE_MIGRATION.sql` to create the report aggregation function/indexes and realtime publication entries.
+- Do not commit `.env`.

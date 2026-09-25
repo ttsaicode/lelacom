@@ -674,71 +674,33 @@
       </div>
       <form id="editAdForm" onsubmit="handleSaveAdEdit(event)">
         <input type="hidden" id="editAdId" />
-        
-        <div class="form-row" style="margin-bottom: 12px;">
+
+        <div class="form-row" style="margin-bottom:12px;">
           <div style="flex:1;">
-            <label for="editAdTitle" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Ad Title / Campaign Label *</label>
-            <input type="text" id="editAdTitle" class="input-field" maxlength="90" required style="width: 100%;" />
+            <label for="editAdTitle" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Brand / Campaign Name *</label>
+            <input type="text" id="editAdTitle" class="input-field" maxlength="90" required style="width:100%;" />
           </div>
           <div style="flex:1;">
-            <label for="editAdBody" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Description / Promo Subtext</label>
-            <input type="text" id="editAdBody" class="input-field" placeholder="e.g. Save 20% with code LELA" maxlength="140" style="width: 100%;" />
+            <label for="editAdLink" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Destination URL (optional)</label>
+            <input type="url" id="editAdLink" class="input-field" placeholder="https://..." style="width:100%;" />
           </div>
         </div>
 
-        <div class="form-row" style="margin-bottom: 12px;">
+        <div class="form-row" style="margin-bottom:16px; align-items:end;">
           <div style="flex:1;">
-            <label for="editAdLink" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Click Destination URL</label>
-            <input type="url" id="editAdLink" class="input-field" placeholder="https://..." style="width: 100%;" />
-          </div>
-          <div style="flex:1;">
-            <label for="editAdMediaUrl" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Media URL (Image or Video)</label>
-            <input type="text" id="editAdMediaUrl" class="input-field" required style="width: 100%;" />
-          </div>
-        </div>
-
-        <div class="form-row" style="margin-bottom: 12px;">
-          <div style="flex:1;">
-            <label for="editAdPlacement" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Placement Strategy</label>
+            <label for="editAdPlacement" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Placement</label>
             <select id="editAdPlacement" class="input-field" style="width:100%;">
-              <option value="stranger-overlay">🎯 Stranger's Video Layout (Top-Right Overlay - Mobile Safe)</option>
-              <option value="below-video">📺 Below Video Grid (Centered Banner)</option>
-              <option value="corner">📌 Floating Corner Card</option>
+              <option value="stranger-overlay">🎯 Stranger's Video</option>
+              <option value="below-video">📺 Below Video</option>
+              <option value="corner">📌 Floating Corner</option>
             </select>
           </div>
-          <div style="flex:1;">
-            <label for="editAdDeviceTarget" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Device Targeting</label>
-            <select id="editAdDeviceTarget" class="input-field" style="width:100%;">
-              <option value="all">🌐 All Devices (Mobile + Desktop)</option>
-              <option value="mobile">📱 Mobile Devices Only</option>
-              <option value="desktop">💻 Desktop Only</option>
-            </select>
-          </div>
+          <label class="checkbox-row" for="editAdActive" style="margin-left:12px;">
+            <input type="checkbox" id="editAdActive" /> Active Live
+          </label>
         </div>
 
-        <div class="form-row" style="margin-bottom: 16px;">
-          <div style="flex:1;">
-            <label for="editAdPriority" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Priority Weight</label>
-            <select id="editAdPriority" class="input-field" style="width:100%;">
-              <option value="10">High Priority (10)</option>
-              <option value="5">Standard Priority (5)</option>
-              <option value="1">Low Priority (1)</option>
-            </select>
-          </div>
-          <div style="flex:1;">
-            <label for="editAdRotation" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Rotation (sec)</label>
-            <input type="number" id="editAdRotation" class="input-field" min="3" max="120" style="width:100%;" />
-          </div>
-          <div style="flex:1;">
-            <label for="editAdCta" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">Button CTA Text</label>
-            <input type="text" id="editAdCta" class="input-field" placeholder="e.g. Visit Sponsor" maxlength="30" style="width:100%;" />
-          </div>
-          <div style="display:flex; align-items:flex-end; padding-bottom:8px;">
-            <label class="checkbox-row" for="editAdActive">
-              <input type="checkbox" id="editAdActive" /> Active Live
-            </label>
-          </div>
-        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:14px;">Media stays in Supabase Storage. Use the public ad list to preview or replace media by publishing a new campaign.</div>
 
         <div style="display:flex; justify-content:flex-end; gap:10px;">
           <button type="button" class="btn" onclick="closeEditAdModal()">Cancel</button>
@@ -788,12 +750,12 @@
           <input type="password" id="currentPassInput" class="input-field" placeholder="••••••••" required style="width:100%;" autocomplete="current-password" />
         </div>
         <div class="form-group" style="margin-bottom: 14px;">
-          <label for="newPassInput" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:5px;">New Password (min 6 characters)</label>
-          <input type="password" id="newPassInput" class="input-field" placeholder="••••••••" minlength="6" required style="width:100%;" autocomplete="new-password" />
+          <label for="newPassInput" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:5px;">New Password (min 12 characters + complexity)</label>
+          <input type="password" id="newPassInput" class="input-field" placeholder="••••••••" minlength="12" required style="width:100%;" autocomplete="new-password" />
         </div>
         <div class="form-group" style="margin-bottom: 16px;">
           <label for="confirmPassInput" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:5px;">Confirm New Password</label>
-          <input type="password" id="confirmPassInput" class="input-field" placeholder="••••••••" minlength="6" required style="width:100%;" autocomplete="new-password" />
+          <input type="password" id="confirmPassInput" class="input-field" placeholder="••••••••" minlength="12" required style="width:100%;" autocomplete="new-password" />
         </div>
         <div id="changePassMsg" style="margin-bottom:12px; font-size:12.5px; font-weight:600;"></div>
         <div style="display:flex; justify-content:flex-end; gap:10px;">
@@ -818,7 +780,7 @@
         </p>
         <div class="form-group" style="margin-bottom: 16px;">
           <label for="resetStaffNewPass" style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:5px;">New Password (min 6 chars)</label>
-          <input type="password" id="resetStaffNewPass" class="input-field" placeholder="••••••••" minlength="6" required style="width:100%;" autocomplete="new-password" />
+          <input type="password" id="resetStaffNewPass" class="input-field" placeholder="••••••••" minlength="12" required style="width:100%;" autocomplete="new-password" />
         </div>
         <div id="resetStaffMsg" style="margin-bottom:12px; font-size:12.5px; font-weight:600;"></div>
         <div style="display:flex; justify-content:flex-end; gap:10px;">
@@ -994,50 +956,28 @@
         </h4>
         <form id="adForm" onsubmit="handleAdSubmit(event)">
           <div class="form-row">
-            <input type="text" id="adTitle" class="input-field" placeholder="Campaign Title / Brand Name *" maxlength="90" required style="flex:1;" />
-            <input type="text" id="adBody" class="input-field" placeholder="Promo Subtext / Tagline (e.g. 20% discount on first order)" maxlength="140" style="flex:1;" />
-          </div>
-
-          <div class="form-row">
-            <input type="url" id="adLink" class="input-field" placeholder="Click Destination URL (https://...)" style="flex:1;" />
-            <input type="text" id="adMediaUrl" class="input-field" placeholder="Media URL (or select local file below)" style="flex:1;" />
-            <select id="adDeviceTarget" class="input-field" style="max-width:210px;">
-              <option value="all" selected>🌐 Target: All Devices</option>
-              <option value="mobile">📱 Target: Mobile Only</option>
-              <option value="desktop">💻 Target: Desktop Only</option>
-            </select>
-          </div>
-
-          <div class="form-row">
-            <select id="adPlacement" class="input-field" style="flex:1.5;">
-              <option value="stranger-overlay" selected>🎯 Placement: Stranger's Video Layout (Mobile Safe)</option>
-              <option value="below-video">📺 Placement: Below Video (Centered Banner)</option>
-              <option value="corner">📌 Placement: Floating Corner Card</option>
-            </select>
-            <select id="adPriority" class="input-field" style="max-width:170px;">
-              <option value="10">High Priority (10)</option>
-              <option value="5" selected>Standard Priority (5)</option>
-              <option value="1">Low Priority (1)</option>
-            </select>
-            <input type="number" id="adRotation" class="input-field" style="max-width:140px;" min="3" max="120" value="12" placeholder="Rotation (sec)" />
-            <input type="text" id="adCta" class="input-field" style="max-width:160px;" placeholder="CTA (e.g. Shop Now)" maxlength="30" />
+            <input type="text" id="adTitle" class="input-field" placeholder="Brand / Campaign Name *" maxlength="90" required style="flex:1;" />
+            <input type="url" id="adLink" class="input-field" placeholder="Destination URL (optional)" style="flex:1;" />
           </div>
 
           <div class="form-row" style="align-items:center;">
-            <input type="file" id="adFile" class="input-field" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" style="flex:1;" />
-            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Video ads are stored in Supabase Storage. Maximum uploaded ad file: 45 MB.</div>
-            <label class="checkbox-row" for="adActive" style="margin-left:8px;">
-              <input type="checkbox" id="adActive" checked /> Active Live
-            </label>
+            <select id="adPlacement" class="input-field" style="flex:1;">
+              <option value="stranger-overlay" selected>🎯 Stranger's Video</option>
+              <option value="below-video">📺 Below Video</option>
+              <option value="corner">📌 Floating Corner</option>
+            </select>
+
+            <input type="file" id="adFile" class="input-field" accept="image/png,image/jpeg,image/webp,image/gif,image/avif,video/mp4,video/webm" style="flex:1.4;" required />
             <button type="submit" class="btn btn-primary" id="adSubmitBtn" style="padding:10px 24px;">Publish Campaign</button>
           </div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:8px;">Only name, optional link, placement and media are needed. New ads publish LIVE. Media goes directly to Supabase Storage. Max 20 MB.</div>
         </form>
         <div id="adFilePreview" style="margin-top:12px;"></div>
       </div>
 
       <!-- FILTER & SEARCH TOOLBAR -->
       <div class="filters-bar">
-        <input type="text" id="adSearchInput" class="input-field" placeholder="🔍 Search campaigns by title, body, or URL..." style="flex:2; min-width:200px;" oninput="filterAds()" />
+        <input type="text" id="adSearchInput" class="input-field" placeholder="🔍 Search campaigns by name or URL..." style="flex:2; min-width:200px;" oninput="filterAds()" />
         <select id="adStatusFilter" class="input-field" style="flex:1; min-width:140px;" onchange="filterAds()">
           <option value="all">Status: All Campaigns</option>
           <option value="active">Status: Live Only</option>
@@ -1162,22 +1102,24 @@
     <div id="reportsPanel" class="panel">
       <div class="panel-header">
         <h3 class="panel-title">User Violation Reports</h3>
-        <button class="btn btn-sm" onclick="fetchReports()">Refresh Reports</button>
+        <div style="display:flex;gap:8px;align-items:center;"><span class="status-pill" id="reportsLiveBadge" style="font-size:11px;background:rgba(16,185,129,.12);color:#34d399;border-color:rgba(16,185,129,.3);">● LIVE · syncing</span><button class="btn btn-sm" onclick="fetchReports()">Refresh Reports</button></div>
       </div>
       <div class="table-responsive">
         <table>
           <thead>
             <tr>
               <th>Time</th>
-              <th>Reported Client / IP</th>
-              <th>Reporter Client / IP</th>
+              <th>Report To (IP)</th>
+              <th>IP Report Count</th>
+              <th>Unique Reporters</th>
               <th>Reason</th>
+              <th>Reported Client</th>
               <th>Status</th>
-              <th>Actions</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="reportsTableBody">
-            <tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Sign in to view reports.</td></tr>
+            <tr><td colspan="8" style="text-align:center; color: var(--text-muted);">Sign in to view reports.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1352,8 +1294,8 @@
 
   <script>
     const TOKEN_KEY = "lela_admin_jwt";
-    const HEARTBEAT_MS = 20000;
-    const REFRESH_MS = 8000;
+    const HEARTBEAT_MS = 60000;
+    const REFRESH_MS = 15000;
 
     let adminJwt = sessionStorage.getItem(TOKEN_KEY);
     let currentUser = null;
@@ -1433,13 +1375,14 @@
       bansCache.clear();
 
       $("adsTableBody").innerHTML     = emptyRow(9, "Sign in to manage ads.");
-      $("reportsTableBody").innerHTML = emptyRow(6, "Sign in to view reports.");
+      $("reportsTableBody").innerHTML = emptyRow(8, "Sign in to view reports.");
       $("bansTableBody").innerHTML    = emptyRow(5, "Sign in to view bans.");
     }
 
     function showLoginOverlay(message) {
       stopHeartbeat();
       stopAutoRefresh();
+      disconnectAdminRealtime();
 
       adminJwt = null;
       currentUser = null;
@@ -1524,7 +1467,11 @@
 
         startHeartbeat();
         startAutoRefresh();
-        await fetchAdminData();
+        connectAdminRealtime();
+        // Do not make the login wait for dashboard aggregation queries.
+        fetchAdminData().catch((dataError) => {
+          console.error("Initial dashboard load failed:", dataError);
+        });
       } catch (err) {
         showLoginError(err.message || "Authentication rejected");
         $("adminPassword").value = "";
@@ -1560,6 +1507,33 @@
     function sessionExpired() {
       showLoginOverlay("JWT session has expired or is invalid. Please sign in again.");
     }
+    async function handlePossibleSessionExpiry() {
+      if (!adminJwt) return true;
+      try {
+        const check = await fetch("/api/admin/me", {
+          headers: { "Authorization": `Bearer ${adminJwt}` },
+          cache: "no-store"
+        });
+        if (check.ok) return false;
+      } catch (_) {
+        // A network/runtime failure is not proof that the JWT expired.
+        return false;
+      }
+      sessionExpired();
+      return true;
+    }
+
+    let liveRefreshTimer = null;
+    function startLiveRefresh() {
+      if (liveRefreshTimer) clearInterval(liveRefreshTimer);
+      liveRefreshTimer = setInterval(() => {
+        if (!adminJwt) return;
+        fetchAdminData();
+        if (currentTab === "adsPanel") fetchAds();
+        // Keep moderation data current even when the Reports tab is not active.
+        fetchReports();
+      }, 5000);
+    }
 
     function startHeartbeat() {
       stopHeartbeat();
@@ -1589,6 +1563,54 @@
 
     function stopAutoRefresh() {
       if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    }
+
+    let adminRealtimeSocket = null;
+    let adminRealtimeReconnectTimer = null;
+    let adminRealtimeRefreshTimer = null;
+
+    function scheduleRealtimeRefresh(table) {
+      if (adminRealtimeRefreshTimer) return;
+      adminRealtimeRefreshTimer = setTimeout(async () => {
+        adminRealtimeRefreshTimer = null;
+        try {
+          if (table === "reports") await Promise.all([fetchReports(), fetchAdminData()]);
+          else if (table === "ads") await Promise.all([fetchAds(), fetchAdminData()]);
+          else if (table === "bans") await Promise.all([fetchBans(), fetchReports(), fetchAdminData()]);
+          else if (table === "ad_events" && currentTab === "analyticsPanel") await fetchPerformanceMetrics();
+        } catch (_) {}
+      }, 250);
+    }
+
+    function connectAdminRealtime() {
+      if (!adminJwt) return;
+      try { if (adminRealtimeSocket) adminRealtimeSocket.close(); } catch (_) {}
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      adminRealtimeSocket = new WebSocket(`${protocol}//${window.location.host}/__admin-realtime`);
+      adminRealtimeSocket.addEventListener("open", () => {
+        adminRealtimeSocket.send(JSON.stringify({ type: "admin-auth", token: adminJwt }));
+      });
+      adminRealtimeSocket.addEventListener("message", (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "admin-auth-failed") return;
+          if (message.type === "admin-realtime") scheduleRealtimeRefresh(message.table);
+        } catch (_) {}
+      });
+      adminRealtimeSocket.addEventListener("close", () => {
+        if (!adminJwt) return;
+        clearTimeout(adminRealtimeReconnectTimer);
+        adminRealtimeReconnectTimer = setTimeout(connectAdminRealtime, 2000);
+      });
+      adminRealtimeSocket.addEventListener("error", () => {});
+    }
+
+    function disconnectAdminRealtime() {
+      clearTimeout(adminRealtimeReconnectTimer);
+      if (adminRealtimeRefreshTimer) clearTimeout(adminRealtimeRefreshTimer);
+      adminRealtimeRefreshTimer = null;
+      try { if (adminRealtimeSocket) adminRealtimeSocket.close(); } catch (_) {}
+      adminRealtimeSocket = null;
     }
 
     $("tabBar").addEventListener("click", (e) => {
@@ -1661,8 +1683,7 @@
             : `<span class="dot amber"></span> DB: Relational Store`;
         }
 
-        if (currentTab === "adsPanel") fetchAds();
-        else if (currentTab === "analyticsPanel") fetchPerformanceMetrics();
+        if (currentTab === "analyticsPanel") fetchPerformanceMetrics();
         else if (currentTab === "reportsPanel") fetchReports();
         else if (currentTab === "bansPanel") fetchBans();
         else if (currentTab === "broadcastPanel") fetchAnnouncements();
@@ -1754,7 +1775,7 @@
           body: JSON.stringify(payload)
         });
 
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
           throw new Error(d.error || "Failed to update ad settings");
@@ -1774,7 +1795,7 @@
       if (!adminJwt) return;
       try {
         const res = await fetch("/api/admin/ads", { headers: getAuthHeaders() });
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         if (res.status === 403) return;
 
         const data = await res.json();
@@ -1908,14 +1929,8 @@
     function openEditAdModal(ad) {
       $("editAdId").value = ad.id;
       $("editAdTitle").value = ad.title || "";
-      $("editAdBody").value = ad.body || "";
       $("editAdLink").value = ad.link_url || "";
-      $("editAdMediaUrl").value = ad.media_url || "";
       $("editAdPlacement").value = ad.placement || "stranger-overlay";
-      $("editAdDeviceTarget").value = ad.device_target || "all";
-      $("editAdPriority").value = String(ad.priority ?? 5);
-      $("editAdRotation").value = String(ad.rotation_seconds ?? 12);
-      $("editAdCta").value = ad.cta_text || "";
       $("editAdActive").checked = !!ad.active;
 
       $("editAdModal").style.display = "flex";
@@ -1935,14 +1950,8 @@
       try {
         const payload = {
           title: $("editAdTitle").value.trim(),
-          body: $("editAdBody") ? $("editAdBody").value.trim() : "",
           link_url: $("editAdLink").value.trim(),
-          media_url: $("editAdMediaUrl").value.trim(),
           placement: $("editAdPlacement").value,
-          device_target: $("editAdDeviceTarget") ? $("editAdDeviceTarget").value : "all",
-          priority: parseInt($("editAdPriority").value, 10) || 5,
-          rotation_seconds: parseInt($("editAdRotation").value, 10) || 12,
-          cta_text: $("editAdCta").value.trim(),
           active: $("editAdActive").checked
         };
 
@@ -1952,7 +1961,7 @@
           body: JSON.stringify(payload)
         });
 
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
           throw new Error(d.error || "Failed to update ad campaign");
@@ -2087,7 +2096,7 @@
           method: "POST",
           headers: getAuthHeaders()
         });
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
           throw new Error(d.error || "Failed to clone campaign");
@@ -2107,7 +2116,7 @@
           method: "POST",
           headers: getAuthHeaders()
         });
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         showAdminToast("Statistics reset to zero!");
         await fetchAds();
         await fetchAdminData();
@@ -2121,49 +2130,65 @@
 
       const fileInput = $("adFile");
       const file = fileInput.files[0];
-      const mediaUrl = $("adMediaUrl").value.trim();
+      if (!file) {
+        alert("Please select an image or video file.");
+        return;
+      }
 
-      if (!file && !mediaUrl) {
-        alert("Please select a media file or specify a media URL.");
+      if (file.size > 20 * 1024 * 1024) {
+        alert("Ad media must be 20 MB or smaller.");
         return;
       }
 
       const btn = $("adSubmitBtn");
       btn.disabled = true;
-      btn.textContent = "Publishing...";
+      btn.textContent = "Uploading...";
 
       try {
-        const fd = new FormData();
-        fd.append("title", $("adTitle").value.trim());
-        if ($("adBody")) fd.append("body", $("adBody").value.trim());
-        fd.append("link_url", $("adLink").value.trim());
-        fd.append("placement", $("adPlacement").value);
-        if ($("adDeviceTarget")) fd.append("device_target", $("adDeviceTarget").value);
-        fd.append("priority", $("adPriority").value);
-        fd.append("rotation_seconds", $("adRotation").value || "12");
-        if ($("adCta")) fd.append("cta_text", $("adCta").value.trim());
-        fd.append("active", $("adActive").checked ? "true" : "false");
-
-        if (file) fd.append("media", file);
-        else fd.append("media_url", mediaUrl);
-
-        const res = await fetch("/api/admin/ads", {
+        const signRes = await fetch("/api/admin/ads/upload-url", {
           method: "POST",
-          headers: { "Authorization": `Bearer ${adminJwt}` },
-          body: fd
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ filename: file.name, mimeType: file.type, size: file.size })
         });
+        if (signRes.status === 401) return sessionExpired();
+        const signed = await signRes.json().catch(() => ({}));
+        if (!signRes.ok) throw new Error(signed.error || "Could not prepare upload");
 
-        if (res.status === 401) return sessionExpired();
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Upload failed");
+        btn.textContent = "Uploading to Supabase...";
+        const uploadRes = await fetch(signed.signedUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+            "Cache-Control": "max-age=31536000"
+          },
+          body: file
+        });
+        if (!uploadRes.ok) {
+          const text = await uploadRes.text().catch(() => "");
+          throw new Error(text || "Supabase upload failed");
         }
+
+        btn.textContent = "Publishing...";
+        const createRes = await fetch("/api/admin/ads", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            title: $("adTitle").value.trim(),
+            link_url: $("adLink").value.trim(),
+            placement: $("adPlacement").value,
+            media_url: signed.publicUrl,
+            media_path: signed.path,
+            media_type: file.type.startsWith("video/") ? "video" : "image"
+          })
+        });
+        if (createRes.status === 401) return sessionExpired();
+        const created = await createRes.json().catch(() => ({}));
+        if (!createRes.ok) throw new Error(created.error || "Could not create campaign");
 
         $("adForm").reset();
         $("adFilePreview").innerHTML = "";
         showAdminToast("🎉 Campaign published successfully!");
-        await fetchAds();
-        await fetchAdminData();
+        await Promise.all([fetchAds(), fetchAdminData()]);
       } catch (err) {
         alert("Failed to publish ad: " + err.message);
       } finally {
@@ -2179,7 +2204,7 @@
           headers: getAuthHeaders(),
           body: JSON.stringify({ active })
         });
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         showAdminToast(active ? "Ad campaign activated (LIVE)" : "Ad campaign paused");
         fetchAds();
         fetchAdminData();
@@ -2195,7 +2220,7 @@
           method: "DELETE",
           headers: getAuthHeaders()
         });
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         fetchAds();
         fetchAdminData();
       } catch (err) {
@@ -2260,19 +2285,22 @@
 
       // Update metric cards
       const lastPoint = data[data.length - 1];
-      const totalImp = lastPoint ? (lastPoint.cumulativeImpressions || 0) : 0;
-      const firstImp = data[0] ? (data[0].cumulativeImpressions || 1) : 1;
+      const totalImp = cachedTrendMeta?.totalImpressions30d ?? (lastPoint ? (lastPoint.cumulativeImpressions || 0) : 0);
+      const previousImp = cachedTrendMeta?.previousImpressions30d ?? 0;
       const avgDaily = Math.round(totalImp / data.length);
       const peakDay = Math.max(...data.map(d => d.dailyImpressions || 0));
-      const overallCtr = (cachedTrendMeta && cachedTrendMeta.overallCtr) ? cachedTrendMeta.overallCtr : "5.2%";
+      const overallCtr = (cachedTrendMeta && cachedTrendMeta.overallCtr) ? cachedTrendMeta.overallCtr : "0.00%";
 
       if ($("statTrendTotalImp")) $("statTrendTotalImp").textContent = totalImp.toLocaleString();
       if ($("statTrendAvgDaily")) $("statTrendAvgDaily").textContent = avgDaily.toLocaleString() + " / day";
       if ($("statTrendPeakDay")) $("statTrendPeakDay").textContent = peakDay.toLocaleString() + " impr.";
       if ($("statTrendCtr")) $("statTrendCtr").textContent = overallCtr;
       if ($("trendSummaryBadge")) {
-        const growthPct = Math.round(((totalImp - firstImp) / Math.max(1, firstImp)) * 100);
-        $("trendSummaryBadge").textContent = `📈 +${growthPct}% 30-Day Growth`;
+        const growthBase = Math.max(1, Number(previousImp) || 0);
+        const growthPct = Number(previousImp) > 0 ? Math.round(((totalImp - previousImp) / growthBase) * 100) : null;
+        $("trendSummaryBadge").textContent = growthPct === null
+          ? "📊 30-Day Activity"
+          : `${growthPct >= 0 ? "📈" : "📉"} ${growthPct > 0 ? "+" : ""}${growthPct}% vs previous 30d`;
       }
 
       const margin = { top: 25, right: 35, bottom: 40, left: 55 };
@@ -2532,17 +2560,24 @@
     async function fetchReports() {
       if (!adminJwt) return;
       try {
-        const res = await fetch("/api/admin/reports", { headers: getAuthHeaders() });
-        if (res.status === 401) return sessionExpired();
+        const [reportsRes, bansRes] = await Promise.all([
+          fetch("/api/admin/reports", { headers: getAuthHeaders() }),
+          fetch("/api/admin/bans", { headers: getAuthHeaders() })
+        ]);
+        if (reportsRes.status === 401 || bansRes.status === 401) return sessionExpired();
 
-        const data = await res.json();
+        const data = await reportsRes.json();
+        const bansData = await bansRes.json().catch(() => ({ bans: [] }));
         const reports = Array.isArray(data.reports) ? data.reports : [];
+        const bannedIps = new Set((Array.isArray(bansData.bans) ? bansData.bans : []).map(b => String(b.ip)));
+        const liveBadge = $("reportsLiveBadge");
+        if (liveBadge) liveBadge.textContent = `● LIVE · ${new Date().toLocaleTimeString()}`;
         const tbody = $("reportsTableBody");
         reportsCache.clear();
         $("tabReportsCount").textContent = reports.filter(r => r.status === "pending").length;
 
         if (!reports.length) {
-          tbody.innerHTML = emptyRow(6, "No violation reports submitted.");
+          tbody.innerHTML = emptyRow(8, "No violation reports submitted.");
           return;
         }
 
@@ -2550,24 +2585,25 @@
           const id = String(r.id);
           reportsCache.set(id, r);
           const status = String(r.status || "pending").toLowerCase();
-          const reportedIp = r.reported_ip || "unknown";
-          const canBan = reportedIp && reportedIp !== "unknown";
+          const reportedIp = String(r.report_to_ip || r.reported_ip || "unknown");
+          const isBanned = bannedIps.has(reportedIp);
+          const ipCount = Number(r.ip_report_count ?? r.report_count ?? 1);
+          const uniqueIpCount = Number(r.ip_unique_reporters_count ?? r.unique_reporters_count ?? 1);
 
           return `
             <tr>
               <td>${escapeHtml(fmtTime(r.created_at))}</td>
               <td>
-                <strong>Client #${escapeHtml(r.reported_id ?? "N/A")}</strong><br>
-                <small class="muted">${escapeHtml(reportedIp)}</small>
+                <strong><code>${escapeHtml(reportedIp)}</code></strong>
+                <br><small class="muted">Target IP</small>
               </td>
-              <td>
-                Client #${escapeHtml(r.reporter_id ?? "N/A")}<br>
-                <small class="muted">${escapeHtml(r.reporter_ip || "unknown")}</small>
-              </td>
-              <td><strong class="danger-text">${escapeHtml(r.reason || "—")}</strong></td>
-              <td><span class="tag tag-${escapeHtml(status)}">${escapeHtml(status.toUpperCase())}</span></td>
+              <td><strong>${ipCount}</strong></td>
+              <td><strong>${uniqueIpCount}</strong></td>
+              <td><strong class="danger-text">${escapeHtml(r.reason || "—")}</strong><br><small class="muted">${Number(r.report_count || 1)} for this reason</small></td>
+              <td>Client #${escapeHtml(r.reported_id ?? "N/A")}</td>
+              <td><span class="tag tag-${escapeHtml(status)}">${escapeHtml(status.toUpperCase())}${uniqueIpCount >= 3 ? " ⚠️ REVIEW" : ""}${isBanned ? " · BANNED" : ""}</span></td>
               <td class="actions-cell">
-                ${canBan ? `<button class="btn btn-sm btn-danger" data-action="ban-report" data-id="${escapeHtml(id)}">🚫 Ban IP</button>` : ""}
+                ${isBanned ? `<button class="btn btn-sm" data-action="unban-report-ip" data-ip="${escapeHtml(reportedIp)}">Unban IP</button>` : (reportedIp !== "unknown" ? `<button class="btn btn-sm btn-danger" data-action="ban-report" data-id="${escapeHtml(id)}">🚫 Ban IP</button>` : "")}
                 ${status === "pending" ? `<button class="btn btn-sm" data-action="dismiss-report" data-id="${escapeHtml(id)}">Dismiss</button>` : ""}
               </td>
             </tr>`;
@@ -2577,56 +2613,78 @@
       }
     }
 
-    $("reportsTableBody").addEventListener("click", (e) => {
+    $("reportsTableBody").addEventListener("click", async (e) => {
       const btn = e.target.closest("button[data-action]");
       if (!btn) return;
       const report = reportsCache.get(btn.dataset.id);
-      if (!report) return;
 
-      if (btn.dataset.action === "ban-report") {
-        banReportedIp(report.id, report.reported_ip, report.reason);
-      } else if (btn.dataset.action === "dismiss-report") {
-        resolveReport(report.id, "dismissed");
+      if (btn.dataset.action === "ban-report" && report) {
+        await banReportedIp(report.id, report.reported_ip, report.reason);
+      } else if (btn.dataset.action === "unban-report-ip") {
+        await unbanIp(btn.dataset.ip);
+      } else if (btn.dataset.action === "dismiss-report" && report) {
+        await resolveReport(report.id, "dismissed");
       }
     });
 
     async function banReportedIp(reportId, ip, reason) {
-      if (!confirm(`Block IP ${ip} permanently?`)) return;
+      if (!ip || ip === "unknown") return;
+      if (!confirm(`Block IP ${ip} and mark all related reports as banned?`)) return;
       try {
-        await fetch("/api/admin/ban", {
+        const res = await fetch(`/api/admin/reports/${encodeURIComponent(reportId)}/ban`, {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ ip, reason: `Violation report: ${reason}` })
+          body: JSON.stringify({})
         });
-        await fetch(`/api/admin/reports/${encodeURIComponent(reportId)}/status`, {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ status: "banned" })
-        });
-        fetchReports();
-        fetchAdminData();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || "Ban action failed");
+        showAdminToast(`🚫 ${ip} banned and related reports updated.`);
+        await Promise.all([fetchReports(), fetchBans(), fetchAdminData()]);
       } catch (err) {
         alert("Ban action failed: " + err.message);
       }
     }
 
+    async function unbanIp(ip) {
+      if (!ip) return;
+      if (!confirm(`Unban IP ${ip}?`)) return;
+      try {
+        const res = await fetch("/api/admin/unban", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ ip })
+        });
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || "Unban failed");
+        showAdminToast(`✅ ${ip} unbanned.`);
+        await Promise.all([fetchReports(), fetchBans(), fetchAdminData()]);
+      } catch (err) {
+        alert("Unban failed: " + err.message);
+      }
+    }
+
     async function resolveReport(reportId, status) {
       try {
-        await fetch(`/api/admin/reports/${encodeURIComponent(reportId)}/status`, {
+        const res = await fetch(`/api/admin/reports/${encodeURIComponent(reportId)}/status`, {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({ status })
         });
-        fetchReports();
-        fetchAdminData();
-      } catch (err) {}
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "Could not update report"); }
+        await Promise.all([fetchReports(), fetchAdminData()]);
+      } catch (err) {
+        alert("Report update failed: " + err.message);
+      }
     }
 
     async function fetchBans() {
       if (!adminJwt) return;
       try {
         const res = await fetch("/api/admin/bans", { headers: getAuthHeaders() });
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
 
         const data = await res.json();
         const bans = Array.isArray(data.bans) ? data.bans : [];
@@ -2839,7 +2897,7 @@
         return;
       }
 
-      if (newPassword.length < 6) {
+      if (newPassword.length < 12) {
         msgEl.style.color = "#f87171";
         msgEl.textContent = "New password must be at least 6 characters.";
         return;
@@ -2896,7 +2954,7 @@
       const msgEl = $("resetStaffMsg");
       const btn = $("resetStaffSubmitBtn");
 
-      if (newPassword.length < 6) {
+      if (newPassword.length < 12) {
         msgEl.style.color = "#f87171";
         msgEl.textContent = "Password must be at least 6 characters.";
         return;
@@ -2938,7 +2996,7 @@
       if (!adminJwt) return;
       try {
         const res = await fetch("/api/admin/announcements", { headers: getAuthHeaders() });
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
 
         const data = await res.json();
         activeAnnouncementData = data.activeAnnouncement;
@@ -3060,7 +3118,7 @@
           body: JSON.stringify({ title, message, lockout })
         });
 
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
           throw new Error(d.error || "Broadcast failed");
@@ -3088,7 +3146,7 @@
           headers: getAuthHeaders()
         });
 
-        if (res.status === 401) return sessionExpired();
+        if (res.status === 401) { await handlePossibleSessionExpiry(); return; }
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
           throw new Error(d.error || "Failed to delete announcement");
