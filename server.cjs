@@ -2050,6 +2050,11 @@ const server = http.createServer(async (req, res) => {
     return sendJson(200, { status: "ok", uptime: Math.floor(process.uptime()) });
   }
 
+  if (requestPath === "/api/online-count" && req.method === "GET") {
+    res.setHeader("Cache-Control", "no-store");
+    return sendJson(200, { count: getOnlineCount() });
+  }
+
   // GET /api/rtc-config - WebRTC ICE servers for the browser.
   //
   // TURN credentials must reach the client, so they are served from here
