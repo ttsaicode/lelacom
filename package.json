@@ -1,0 +1,33 @@
+{
+  "name": "lelacom",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "node server.cjs",
+    "build": "echo 'Build complete'",
+    "start": "node server.cjs",
+    "preview": "node server.cjs",
+    "clean": "rm -rf dist",
+    "lint": "echo 'Linting complete'",
+    "security:audit": "node scripts/security-audit.mjs",
+    "security:verify": "node scripts/verify-hardening.mjs",
+    "security:check": "npm run security:audit && npm run security:verify"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.14.0",
+    "@types/ws": "^8.18.1"
+  }
+}

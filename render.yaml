@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: lela-video-chat
+    env: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node server.cjs
+    # Liveness probe. Must be an endpoint that is never rate limited, or
+    # Render will cancel healthy deploys when the probe gets a 429.
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Pin the runtime. Without this Render picks the newest available Node
+      # (it currently selects v26), which is not what this app is tested on.
+      - key: NODE_VERSION
+        value: "22.16.0"
+      # --- Required. The server refuses to start in production without these. ---
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_PATH
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # --- Optional ---
+      - key: REDIS_URL
+        sync: false
+      - key: SUPABASE_ADS_BUCKET
+        value: ad-media
+      # Comma-separated list of allowed browser origins.
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # True on Render, where the proxy is controlled and terminates TLS.
+      - key: TRUST_PROXY
+        value: "true"
+      # --- TURN relay (required for calls between strangers) ---
+      # STUN alone often cannot connect two peers behind symmetric NATs,
+      # which is why calls to unknown people fail. Set these three:
+      #   TURN_URLS       comma-separated, e.g.
+      #                   turn:turn.example.com:3478?transport=udp,turn:turn.example.com:3478?transport=tcp
+      #   TURN_USERNAME   credential username from your TURN provider
+      #   TURN_CREDENTIAL credential password from your TURN provider
+      # Credentials are served to the browser by GET /api/rtc-config and are
+      # never written into committed source.
+      - key: TURN_URLS
+        sync: false
+      - key: TURN_USERNAME
+        sync: false
+      - key: TURN_CREDENTIAL
+        sync: false
+      # Preferred alternative when your provider gives you a shared secret
+      # (coturn --use-auth-secret). The server then mints short-lived
+      # credentials per request. Leave unset when using the static pair above.
+      - key: TURN_SHARED_SECRET
+        sync: false

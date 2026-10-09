@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n-title="ct.title">Contact — LELA</title>
+  <meta name="description" content="Reach out to the LELA team by email or phone, or ask about paid advertising." />
+  <meta name="theme-color" content="#EDEBE6" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Contact — LELA" />
+  <meta property="og:description" content="Reach out to the LELA team by email or phone, or ask about paid advertising." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+Ethiopic:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="shortcut icon" href="svgbg.png" type="image/x-icon" />
+  <link rel="stylesheet" href="/landing.css" />
+  <script src="/theme-init.js"></script>
+  <script src="/language.js" defer></script>
+  <script src="/landing.js" defer></script>
+  <style>
+    /* ─────────────────────────────────────────────────────────────
+       Aesthetic Editorial Contact Design (Minimalist, Human, Sleek)
+       ───────────────────────────────────────────────────────────── */
+    .aesthetic-contact-section {
+      min-height: calc(100vh - 280px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-block: clamp(48px, 8vh, 100px);
+    }
+
+    .aesthetic-container {
+      max-width: 780px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .aesthetic-eyebrow {
+      font-family: var(--f-mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .aesthetic-eyebrow::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .aesthetic-title {
+      font-size: clamp(44px, 8vw, 92px);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.045em;
+      text-transform: uppercase;
+      margin: 0 0 20px;
+      color: var(--fg);
+    }
+
+    .aesthetic-title em {
+      font-style: normal;
+      background-image: var(--grad-full);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .aesthetic-lead {
+      font-size: clamp(16px, 1.4vw, 21px);
+      line-height: 1.6;
+      color: var(--muted);
+      max-width: 48ch;
+      margin: 0 0 clamp(40px, 6vh, 60px);
+    }
+
+    /* Email Showcase */
+    .aesthetic-email-block {
+      margin-bottom: clamp(44px, 7vh, 72px);
+      padding-bottom: clamp(32px, 5vh, 48px);
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .aesthetic-label {
+      font-family: var(--f-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .aesthetic-email-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px 24px;
+    }
+
+    .aesthetic-email {
+      font-family: var(--f-sans);
+      font-size: clamp(28px, 4.5vw, 54px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--fg);
+      text-decoration: none;
+      transition: color 0.2s var(--ease), transform 0.2s var(--ease), text-shadow 0.2s var(--ease);
+      display: inline-block;
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+
+    .aesthetic-email {
+      transform-origin: left center;
+    }
+
+    /* Subtle scale + glow on email and phone numbers */
+    .aesthetic-email:hover,
+    .aesthetic-email:focus-visible {
+      color: var(--accent);
+      transform: scale(1.03);
+      text-shadow: 0 0 22px color-mix(in srgb, var(--accent) 55%, transparent);
+      outline: none;
+    }
+
+    .aesthetic-copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card);
+      border: 1px solid var(--line-strong);
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-family: var(--f-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg);
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+
+    .aesthetic-copy-btn:hover {
+      background: var(--fg);
+      color: var(--bg);
+      border-color: var(--fg);
+      transform: translateY(-2px);
+    }
+
+    .aesthetic-copy-btn svg {
+      width: 14px;
+      height: 14px;
+      flex: none;
+    }
+
+    /* Phone numbers */
+    .aesthetic-phone-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .aesthetic-phone-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 22px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--fg);
+      text-decoration: none;
+      transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease),
+                  border-color 0.2s var(--ease), color 0.2s var(--ease);
+    }
+
+    .aesthetic-phone-card svg {
+      width: 22px;
+      height: 22px;
+      flex: none;
+      color: var(--accent);
+    }
+
+    .aesthetic-phone-number {
+      font-family: var(--f-sans);
+      font-size: clamp(20px, 2.6vw, 26px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .aesthetic-phone-card:hover,
+    .aesthetic-phone-card:focus-visible {
+      transform: scale(1.04);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 40%, transparent);
+      outline: none;
+    }
+
+    .aesthetic-note {
+      margin: 14px 0 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    /* Paid advertising */
+    .aesthetic-ads-block {
+      margin-bottom: clamp(44px, 7vh, 72px);
+      padding-bottom: clamp(32px, 5vh, 48px);
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    .aesthetic-ads-card {
+      padding: clamp(20px, 3vw, 30px);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: 14px;
+    }
+
+    .aesthetic-ads-title {
+      margin: 0 0 10px;
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--fg);
+    }
+
+    .aesthetic-ads-card p {
+      margin: 0 0 12px;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--muted);
+      max-width: 60ch;
+    }
+
+    .aesthetic-ads-cta {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 6px;
+      padding: 11px 20px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      font-family: var(--f-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg);
+      text-decoration: none;
+      transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease),
+                  color 0.2s var(--ease), border-color 0.2s var(--ease);
+    }
+
+    .aesthetic-ads-cta:hover,
+    .aesthetic-ads-cta:focus-visible {
+      transform: scale(1.04);
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 40%, transparent);
+      outline: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .aesthetic-email:hover,
+      .aesthetic-email:focus-visible,
+      .aesthetic-phone-card:hover,
+      .aesthetic-phone-card:focus-visible,
+      .aesthetic-ads-cta:hover,
+      .aesthetic-ads-cta:focus-visible {
+        transform: none;
+      }
+    }
+
+    /* Social Community Section */
+    .aesthetic-socials-block {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .aesthetic-socials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .aesthetic-social-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      text-decoration: none;
+      color: var(--fg);
+      transition: all 0.22s var(--ease);
+    }
+
+    .aesthetic-social-card:hover {
+      border-color: var(--accent);
+      background: var(--card);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -6px rgba(124, 58, 237, 0.15);
+      color: var(--accent);
+    }
+
+    .aesthetic-social-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .aesthetic-social-info svg {
+      width: 20px;
+      height: 20px;
+      flex: none;
+    }
+
+    .aesthetic-social-name {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .aesthetic-arrow {
+      font-family: var(--f-mono);
+      font-size: 16px;
+      opacity: 0.5;
+      transition: transform 0.2s var(--ease), opacity 0.2s var(--ease);
+    }
+
+    .aesthetic-social-card:hover .aesthetic-arrow {
+      opacity: 1;
+      transform: translateX(4px);
+    }
+
+    /* Copy toast notification */
+    .aesthetic-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--fg);
+      color: var(--bg);
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-family: var(--f-mono);
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.25s var(--ease), opacity 0.25s var(--ease);
+      z-index: 999;
+    }
+
+    .aesthetic-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 640px) {
+      .aesthetic-socials-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="a11y.skip">Skip to content</a>
+
+  <!-- ───────────────────────── NAV ───────────────────────── -->
+  <header class="nav shell">
+    <a class="wordmark" href="/" aria-label="LELA home"><img class="nav-logo" src="/svgbg.png" alt="" width="26" height="26" /><span data-i18n="brand.word">LELA</span></a>
+
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/#how" data-i18n="nav.how">How it works</a>
+      <a href="/about" data-i18n="nav.about">About</a>
+      <a href="/contact" aria-current="page" data-i18n="nav.contact">Contact</a>
+    </nav>
+
+    <div class="nav-tools">
+      <span class="live-pill" id="livePill" title="People currently connected">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span id="liveCount" class="js-live-count" data-i18n="live.initial">Online</span>
+      </span>
+
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+        <span class="sep" aria-hidden="true">/</span>
+        <button type="button" data-lang="am" aria-pressed="false" lang="am">አማ</button>
+      </div>
+
+      <button class="theme-toggle" id="themeToggle" type="button" data-i18n-attr="aria-label:theme.toDark" aria-label="Switch to dark mode">
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+        </svg>
+      </button>
+
+      <a class="nav-enter" href="/app" data-i18n="nav.enter">Enter</a>
+
+      <button class="burger" id="navBurger" type="button" aria-expanded="false" aria-controls="navDrawer" data-i18n-attr="aria-label:drawer.open" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ───────────────────────── DRAWER ───────────────────────── -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <nav class="drawer" id="navDrawer" aria-label="Menu" data-i18n-attr="aria-label:drawer.menu">
+    <div class="drawer-head">
+      <span class="wordmark" aria-hidden="true"><img class="nav-logo" src="/svgbg.png" alt="" width="26" height="26" /><span data-i18n="brand.word">LELA</span></span>
+      <button class="drawer-close" id="drawerClose" type="button" data-i18n-attr="aria-label:drawer.close" aria-label="Close menu"></button>
+    </div>
+
+    <ul class="drawer-links">
+      <li><a href="/#how" data-i18n="nav.how">How it works</a></li>
+      <li><a href="/about" data-i18n="nav.about">About</a></li>
+      <li><a href="/contact" data-i18n="nav.contact">Contact</a></li>
+      <li><a href="/guidelines" data-i18n="nav.guidelines">Guidelines</a></li>
+    </ul>
+
+    <div class="drawer-utility">
+      <div class="drawer-utility-row">
+        <span class="live-pill" aria-hidden="true">
+          <span class="live-dot"></span>
+          <span class="js-live-count" data-i18n="live.initial">Online</span>
+        </span>
+
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+          <span class="sep" aria-hidden="true">/</span>
+          <button type="button" data-lang="am" aria-pressed="false" lang="am">አማ</button>
+        </div>
+
+        <button class="theme-toggle" id="themeToggleDrawer" type="button" data-i18n-attr="aria-label:theme.toDark" aria-label="Switch to dark mode">
+          <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+          </svg>
+        </button>
+      </div>
+
+      <a class="btn" href="/app" data-i18n="cta.start">Start video chat</a>
+    </div>
+  </nav>
+
+  <!-- ───────────────────────── MAIN AESTHETIC CONTACT ───────────────────────── -->
+  <main id="main">
+    <section class="aesthetic-contact-section shell">
+      <div class="aesthetic-container">
+        <div class="aesthetic-eyebrow" data-i18n="ct.getInTouch">Get in touch</div>
+        <h1 class="aesthetic-title" data-i18n="ct.titleH1">Let’s <em>talk.</em></h1>
+        <p class="aesthetic-lead" data-i18n="ct.leadDesc">
+          Have a question about LELA, feedback on the platform, or want to collaborate? Write directly to the team or join our community.
+        </p>
+
+        <!-- Primary Email -->
+        <div class="aesthetic-email-block">
+          <div class="aesthetic-label" data-i18n="ct.directEmail">Direct Email</div>
+          <div class="aesthetic-email-row">
+            <a class="aesthetic-email" id="contactEmail" href="mailto:admin@lela.chat">admin@lela.chat</a>
+            <button class="aesthetic-copy-btn" id="copyEmailBtn" type="button" aria-label="Copy email">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span id="copyBtnText" data-i18n="ct.copyEmail">Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Phone Numbers -->
+        <div class="aesthetic-email-block">
+          <div class="aesthetic-label" data-i18n="ct.phoneLabel">Phone</div>
+          <div class="aesthetic-phone-grid">
+            <a class="aesthetic-phone-card" href="tel:+251946697787" aria-label="Call +251 94 669 7787">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.62a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.46-1.19a2 2 0 0 1 2.11-.45c.84.29 1.72.5 2.62.62A2 2 0 0 1 22 16.92z"></path></svg>
+              <span class="aesthetic-phone-number">+251 94 669 7787</span>
+            </a>
+            <a class="aesthetic-phone-card" href="tel:+251924485422" aria-label="Call +251 92 448 5422">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.62a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.46-1.19a2 2 0 0 1 2.11-.45c.84.29 1.72.5 2.62.62A2 2 0 0 1 22 16.92z"></path></svg>
+              <span class="aesthetic-phone-number">+251 92 448 5422</span>
+            </a>
+          </div>
+          <p class="aesthetic-note" data-i18n="ct.phoneNote">Tap a number to call from your phone.</p>
+        </div>
+
+        <!-- Paid Advertising -->
+        <div class="aesthetic-ads-block">
+          <div class="aesthetic-label" data-i18n="ct.adsLabel">Paid Advertising</div>
+          <div class="aesthetic-ads-card">
+            <h2 class="aesthetic-ads-title" data-i18n="ct.adsTitle">Advertise with LELA</h2>
+            <p data-i18n="ct.adsDesc">We also run paid ads. If you want to promote your business, brand, or event to people on LELA, contact us by email or phone.</p>
+            <p data-i18n="ct.adsInclude">In your message, include your business or brand name, what you want to promote, and your preferred timing.</p>
+            <a class="aesthetic-ads-cta" href="mailto:admin@lela.chat?subject=Advertising%20inquiry" data-i18n="ct.adsCta">Email about advertising</a>
+          </div>
+        </div>
+
+        <!-- Social Links Grid -->
+        <div class="aesthetic-socials-block">
+          <div class="aesthetic-label" data-i18n="ct.socialCommunity">Social & Communities</div>
+          <div class="aesthetic-socials-grid">
+            <!-- Telegram -->
+            <a class="aesthetic-social-card" href="https://t.me/lela_chat" target="_blank" rel="noopener noreferrer">
+              <div class="aesthetic-social-info">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                <span class="aesthetic-social-name">Telegram</span>
+              </div>
+              <span class="aesthetic-arrow">→</span>
+            </a>
+
+            <!-- X / Twitter -->
+            <a class="aesthetic-social-card" href="https://x.com/lela_chat" target="_blank" rel="noopener noreferrer">
+              <div class="aesthetic-social-info">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                <span class="aesthetic-social-name">Twitter / X</span>
+              </div>
+              <span class="aesthetic-arrow">→</span>
+            </a>
+
+            <!-- Discord -->
+            <a class="aesthetic-social-card" href="https://discord.gg/lela" target="_blank" rel="noopener noreferrer">
+              <div class="aesthetic-social-info">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                <span class="aesthetic-social-name">Discord</span>
+              </div>
+              <span class="aesthetic-arrow">→</span>
+            </a>
+
+            <!-- GitHub -->
+            <a class="aesthetic-social-card" href="https://github.com/lela-chat" target="_blank" rel="noopener noreferrer">
+              <div class="aesthetic-social-info">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+                <span class="aesthetic-social-name">GitHub</span>
+              </div>
+              <span class="aesthetic-arrow">→</span>
+            </a>
+
+            <!-- Instagram -->
+            <a class="aesthetic-social-card" href="https://instagram.com/lela_chat" target="_blank" rel="noopener noreferrer">
+              <div class="aesthetic-social-info">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                <span class="aesthetic-social-name">Instagram</span>
+              </div>
+              <span class="aesthetic-arrow">→</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="aesthetic-toast" id="copyToast" data-i18n="ct.copied">Email copied to clipboard</div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var btn = document.getElementById("copyEmailBtn");
+      var toast = document.getElementById("copyToast");
+      if (btn) {
+        btn.addEventListener("click", function () {
+          navigator.clipboard.writeText("admin@lela.chat").then(function () {
+            if (toast) {
+              toast.classList.add("show");
+              setTimeout(function () { toast.classList.remove("show"); }, 2400);
+            }
+          });
+        });
+      }
+    });
+  </script>
+
+  <!-- ───────────────────────── FOOTER ───────────────────────── -->
+  <footer class="footer shell">
+    <div class="footer-top">
+      <p class="footer-mark" lang="am" aria-label="LELA">ሌላ</p>
+      <a class="footer-cta" href="/app" data-i18n="cta.start">Start video chat</a>
+    </div>
+
+    <nav class="footer-links" aria-label="Footer">
+      <a href="/about" data-i18n="nav.about">About</a>
+      <a href="/#how" data-i18n="nav.how">How it works</a>
+      <a href="/contact" data-i18n="nav.contact">Contact</a>
+      <a href="/guidelines" data-i18n="nav.guidelines">Guidelines</a>
+      <a href="/privacy" data-i18n="nav.privacy">Privacy</a>
+      <a href="/terms" data-i18n="nav.terms">Terms</a>
+    </nav>
+
+    <div class="footer-bottom">
+      <p data-i18n="foot.desc">Random one-on-one video chat. Peer-to-peer, moderated, no account.</p>
+      <p class="footer-legal" data-i18n="foot.legal">© 2026 LELA. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
