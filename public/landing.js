@@ -2,7 +2,6 @@
    LELA — landing behaviour
    • Passive WebSocket: listen only for the online count. This page never
      sends matchmaking payloads; it only observes.
-   • Contact form: client-side validation, then POST /api/contact.
    • Theme toggle (light/dark) and language switch (EN/AM), both persisted.
    • Hamburger drawer for responsive navigation.
    ========================================================================= */
@@ -250,75 +249,7 @@
     }
   }
 
-  /* ── Contact form ────────────────────────────────────────────────────── */
 
-  var form = document.getElementById("contactForm");
-  if (form) {
-    var emailInput = form.querySelector("#email");
-    var messageInput = form.querySelector("#message");
-    var emailError = form.querySelector("#emailError");
-    var messageError = form.querySelector("#messageError");
-    var formMsg = form.querySelector("#formMsg");
-    var panel = form.closest(".form-panel");
-    var againBtn = document.getElementById("againBtn");
-
-    function setError(errorEl, inputEl, msg) {
-      if (msg) {
-        errorEl.textContent = msg;
-        inputEl.setAttribute("aria-invalid", "true");
-      } else {
-        errorEl.textContent = "";
-        inputEl.removeAttribute("aria-invalid");
-      }
-    }
-
-    form.addEventListener("submit", function (event) {
-      event.preventDefault();
-      var email = emailInput.value.trim();
-      var message = messageInput.value.trim();
-      var valid = true;
-
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        setError(emailError, emailInput, "Please enter a valid email address.");
-        valid = false;
-      } else {
-        setError(emailError, emailInput, null);
-      }
-
-      if (!message) {
-        setError(messageError, messageInput, "Please enter a message.");
-        valid = false;
-      } else {
-        setError(messageError, messageInput, null);
-      }
-
-      if (!valid) return;
-
-      fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email, message: message }),
-      })
-        .then(function (res) { return res.json(); })
-        .then(function () {
-          panel.classList.add("is-sent");
-        })
-        .catch(function () {
-          formMsg.textContent = "Something went wrong. Please try again.";
-        });
-    });
-
-    if (againBtn) {
-      againBtn.addEventListener("click", function () {
-        panel.classList.remove("is-sent");
-        form.reset();
-        setError(emailError, emailInput, null);
-        setError(messageError, messageInput, null);
-        formMsg.textContent = "";
-        emailInput.focus();
-      });
-    }
-  }
 
   /* ── Magnetic hover: a gradient trail that follows the pointer
      and blooms over interactive targets. ─────────────────────────────────────

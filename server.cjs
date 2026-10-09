@@ -2174,14 +2174,9 @@ const server = http.createServer(async (req, res) => {
     return res.end("Forbidden");
   }
 
-  // Defence in depth against visitor PII ever being served. The contact log
-  // contains real names, emails, IP addresses and message bodies, so even if a
-  // copy is accidentally written into the web root it must never be served.
-  // This exact file previously sat in public/ and was downloadable by anyone.
+  // Defence in depth against sensitive files ever being served.
   const relativeToPublic = path.relative(publicDir, filePath);
   if (
-    path.extname(relativeToPublic).toLowerCase() === ".jsonl" ||
-    path.basename(relativeToPublic) === "contact-messages.jsonl" ||
     relativeToPublic === ".env" ||
     relativeToPublic.endsWith(".env")
   ) {
